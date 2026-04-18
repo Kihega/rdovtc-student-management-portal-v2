@@ -1,0 +1,55 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality:
+    name: 🔍 PR Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint check
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test:ci
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080/api
+
+      - name: Check for console.log statements
+        run: |
+          if grep -rn "console\.log(" app/ components/ lib/ --include="*.ts" --include="*.tsx" 2>/dev/null; then
+            echo "❌ console.log() found — remove before merging (use console.warn/error instead)"
+            exit 1
+          fi
+          echo "✅ No console.log statements found"
+
+      - name: Check for hardcoded API URLs
+        run: |
+          if grep -rn "onrender\.com\|localhost:8080" app/ components/ lib/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v ".env"; then
+            echo "⚠️  Hardcoded API URL found — use NEXT_PUBLIC_API_URL env var instead"
+            exit 1
+          fi
+          echo "✅ No hardcoded API URLs found"
+
+      - name: Check bundle size (build smoke test)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://rdovtc-backend.onrender.com/api
