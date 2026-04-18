@@ -21,9 +21,11 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 FROM php:8.2-fpm-alpine
 
 RUN apk add --no-cache \
-    nginx supervisor libpng libzip oniguruma \
-    postgresql-dev \
-    && docker-php-ext-install pdo pdo_pgsql mbstring zip bcmath
+    nginx supervisor libpng libzip oniguruma postgresql-libs
+
+# Copy compiled PHP extensions from builder (no recompile needed)
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
 WORKDIR /var/www/html
 
