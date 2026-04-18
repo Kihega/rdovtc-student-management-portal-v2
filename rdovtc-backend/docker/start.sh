@@ -22,7 +22,6 @@ echo "✅ Migrations complete"
 echo "⚡ Caching config & routes..."
 php artisan config:cache
 php artisan route:cache
-php artisan view:cache
 echo "✅ Cache warm"
 
 # Start Nginx + PHP-FPM via Supervisor

@@ -31,6 +31,9 @@ WORKDIR /var/www/html
 
 COPY --from=builder /app /var/www/html
 
+# resources/views is required by Laravel even for API-only apps
+RUN mkdir -p /var/www/html/resources/views
+
 COPY docker/nginx.conf      /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/start.sh         /start.sh
