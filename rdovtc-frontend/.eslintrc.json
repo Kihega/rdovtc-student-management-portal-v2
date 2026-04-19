@@ -1,28 +1,36 @@
 {
   "extends": [
-    "next/core-web-vitals",
-    "next/typescript"
+    "next/core-web-vitals"
   ],
   "rules": {
-    // Enforce no unused variables
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-
-    // No explicit any — keeps type safety
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_"
+      }
+    ],
     "@typescript-eslint/no-explicit-any": "warn",
-
-    // Consistent imports
-    "import/order": ["warn", {
-      "groups": ["builtin", "external", "internal"],
-      "newlines-between": "always"
-    }],
-
-    // Accessibility
+    "import/order": [
+      "warn",
+      {
+        "groups": [
+          "builtin",
+          "external",
+          "internal"
+        ],
+        "newlines-between": "always"
+      }
+    ],
     "jsx-a11y/alt-text": "error",
-
-    // No console.log in production code
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
-
-    // React hooks correctness
+    "no-console": [
+      "warn",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ],
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn"
   }
