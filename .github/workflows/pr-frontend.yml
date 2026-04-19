@@ -1,0 +1,132 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Frontend PR Quality Gate (Next.js / React)
+#
+# Triggers: any PR targeting main or develop that touches rdovtc-frontend/
+# Jobs:  lint  →  tests  →  build
+# All three must be green before the PR can be merged.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Frontend PR Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'rdovtc-frontend/**'
+      - '.github/workflows/pr-frontend.yml'
+
+concurrency:
+  group: frontend-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: rdovtc-frontend
+
+jobs:
+  # ── 1. ESLint + TypeScript ─────────────────────────────────────────────────
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: rdovtc-frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript
+        run: npm run type-check
+
+  # ── 2. Jest unit tests ─────────────────────────────────────────────────────
+  tests:
+    name: Jest Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: rdovtc-frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:ci
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080/api
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-pr-${{ github.event.pull_request.number }}
+          path: rdovtc-frontend/coverage/
+          retention-days: 7
+
+      - name: Post coverage to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const f = 'rdovtc-frontend/coverage/coverage-summary.json';
+            if (!fs.existsSync(f)) return;
+            const s = JSON.parse(fs.readFileSync(f)).total;
+            const row = k => `| ${k.padEnd(12)} | ${String(s[k].pct + '%').padEnd(8)} |`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## Test Coverage',
+                '| Metric       | Coverage |',
+                '|--------------|----------|',
+                row('statements'), row('branches'),
+                row('functions'),  row('lines'),
+              ].join('\n')
+            });
+
+  # ── 3. Next.js build smoke test ────────────────────────────────────────────
+  build:
+    name: Next.js Build
+    runs-on: ubuntu-latest
+    needs: [lint, tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: rdovtc-frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: No console.log in source
+        run: |
+          if grep -rn "console\.log(" app/ components/ lib/               --include="*.ts" --include="*.tsx" 2>/dev/null; then
+            echo "console.log() found — remove before merging"
+            exit 1
+          fi
+          echo "No console.log statements"
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://rdovtc-backend.onrender.com/api
