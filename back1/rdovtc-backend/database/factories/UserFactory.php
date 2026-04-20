@@ -14,7 +14,7 @@ class UserFactory extends Factory
     {
         return [
             'username' => fake()->unique()->safeEmail(),
-            'password' => Hash::make('test-factory-pw'),
+            'password' => Hash::make('password123'),
             'role' => 'Principal/TC',
             'branch_name' => 'VTC-Mdabulo',
             'phone' => '+255'.fake()->numerify('#########'),

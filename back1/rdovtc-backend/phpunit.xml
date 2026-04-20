@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         stopOnFailure="false"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+
+    <!-- Use SQLite in-memory for speed — no real PostgreSQL needed in CI -->
+    <php>
+        <env name="APP_ENV"        value="testing"/>
+        <env name="APP_KEY"        value="base64:mocked-key-for-testing-only-32chars=="/>
+        <env name="DB_CONNECTION"  value="sqlite"/>
+        <env name="DB_DATABASE"    value=":memory:"/>
+        <env name="CACHE_STORE"    value="array"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="MAIL_MAILER"    value="array"/>
+        <env name="BCRYPT_ROUNDS"  value="4"/>
+    </php>
+
+    <coverage>
+        <report>
+            <clover outputFile="coverage/clover.xml"/>
+            <html   outputDirectory="coverage/html"/>
+        </report>
+    </coverage>
+</phpunit>
