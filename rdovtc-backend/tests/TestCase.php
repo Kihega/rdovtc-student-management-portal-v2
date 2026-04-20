@@ -17,7 +17,7 @@ abstract class TestCase extends BaseTestCase
     protected function actingAsRole(string $role, ?string $branchName = null): User
     {
         $user = User::factory()->create([
-            'role'        => $role,
+            'role' => $role,
             'branch_name' => $branchName,
         ]);
 

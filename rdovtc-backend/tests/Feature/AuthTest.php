@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -23,7 +24,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure(['token', 'user' => ['id', 'username', 'role']]);
+            ->assertJsonStructure(['token', 'user' => ['id', 'username', 'role']]);
     }
 
     public function test_login_fails_with_wrong_password(): void
@@ -50,8 +51,8 @@ class AuthTest extends TestCase
     public function test_login_requires_username_and_password(): void
     {
         $this->postJson('/api/auth/login', [])
-             ->assertStatus(422)
-             ->assertJsonValidationErrors(['username', 'password']);
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['username', 'password']);
     }
 
     // ── Me ───────────────────────────────────────────────────────────────────
@@ -61,8 +62,8 @@ class AuthTest extends TestCase
         $user = $this->actingAsAdmin();
 
         $this->getJson('/api/auth/me')
-             ->assertStatus(200)
-             ->assertJsonFragment(['username' => $user->username]);
+            ->assertStatus(200)
+            ->assertJsonFragment(['username' => $user->username]);
     }
 
     public function test_me_returns_401_when_unauthenticated(): void
@@ -95,17 +96,17 @@ class AuthTest extends TestCase
 
         $user = User::factory()->create(['password' => Hash::make('oldpass123')]);
 
-        \Laravel\Sanctum\Sanctum::actingAs($user, ['*']);
+        Sanctum::actingAs($user, ['*']);
 
         $this->putJson('/api/auth/password', [
-            'current_password'          => 'oldpass123',
-            'new_password'              => 'newpass456',
+            'current_password' => 'oldpass123',
+            'new_password' => 'newpass456',
             'new_password_confirmation' => 'newpass456',
         ])->assertStatus(200);
 
         // Old password no longer works
         $this->assertFalse(Hash::check('oldpass123', $user->fresh()->password));
-        $this->assertTrue(Hash::check('newpass456',  $user->fresh()->password));
+        $this->assertTrue(Hash::check('newpass456', $user->fresh()->password));
     }
 
     public function test_change_password_fails_with_wrong_current_password(): void
@@ -113,8 +114,8 @@ class AuthTest extends TestCase
         $this->actingAsAdmin();
 
         $this->putJson('/api/auth/password', [
-            'current_password'          => 'wrongcurrent',
-            'new_password'              => 'newpass456',
+            'current_password' => 'wrongcurrent',
+            'new_password' => 'newpass456',
             'new_password_confirmation' => 'newpass456',
         ])->assertStatus(422);
     }
@@ -127,9 +128,9 @@ class AuthTest extends TestCase
         ]);
 
         $this->postJson('/api/auth/change-password', [
-            'username'                  => 'pub@rdovtc.com',
-            'old_password'              => 'oldpub123',
-            'new_password'              => 'newpub456',
+            'username' => 'pub@rdovtc.com',
+            'old_password' => 'oldpub123',
+            'new_password' => 'newpub456',
             'new_password_confirmation' => 'newpub456',
         ])->assertStatus(200);
     }

@@ -13,11 +13,11 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'username'    => fake()->unique()->safeEmail(),
-            'password'    => Hash::make('password123'),
-            'role'        => 'Principal/TC',
+            'username' => fake()->unique()->safeEmail(),
+            'password' => Hash::make('password123'),
+            'role' => 'Principal/TC',
             'branch_name' => 'VTC-Mdabulo',
-            'phone'       => '+255' . fake()->numerify('#########'),
+            'phone' => '+255'.fake()->numerify('#########'),
         ];
     }
 

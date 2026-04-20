@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Student;
 use App\Models\Branch;
 use App\Models\Course;
+use App\Models\Student;
 use Tests\TestCase;
 
 class StudentTest extends TestCase
@@ -19,13 +19,13 @@ class StudentTest extends TestCase
     private function validPayload(array $overrides = []): array
     {
         return array_merge([
-            'first_name'          => 'John',
-            'surname'             => 'Doe',
-            'gender'              => 'Male',
-            'course'              => 'EI',
-            'branch_name'         => 'VTC-Mdabulo',
-            'registration_date'   => '2025-01-15',
-            'status'              => 'Long Course',
+            'first_name' => 'John',
+            'surname' => 'Doe',
+            'gender' => 'Male',
+            'course' => 'EI',
+            'branch_name' => 'VTC-Mdabulo',
+            'registration_date' => '2025-01-15',
+            'status' => 'Long Course',
         ], $overrides);
     }
 
@@ -39,8 +39,8 @@ class StudentTest extends TestCase
         $this->actingAsAdmin();
 
         $this->getJson('/api/students')
-             ->assertStatus(200)
-             ->assertJsonCount(8);
+            ->assertStatus(200)
+            ->assertJsonCount(8);
     }
 
     public function test_principal_only_sees_own_branch_students(): void
@@ -67,11 +67,11 @@ class StudentTest extends TestCase
     public function test_students_can_be_filtered_by_year(): void
     {
         Student::factory()->create([
-            'branch_name'       => 'VTC-Mdabulo',
+            'branch_name' => 'VTC-Mdabulo',
             'registration_date' => '2024-03-01',
         ]);
         Student::factory()->create([
-            'branch_name'       => 'VTC-Mdabulo',
+            'branch_name' => 'VTC-Mdabulo',
             'registration_date' => '2025-01-01',
         ]);
 
@@ -90,8 +90,8 @@ class StudentTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/students', $this->validPayload())
-             ->assertStatus(201)
-             ->assertJsonFragment(['first_name' => 'John']);
+            ->assertStatus(201)
+            ->assertJsonFragment(['first_name' => 'John']);
 
         $this->assertDatabaseHas('student', ['first_name' => 'John', 'surname' => 'Doe']);
     }
@@ -120,8 +120,8 @@ class StudentTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/students', [])
-             ->assertStatus(422)
-             ->assertJsonValidationErrors(['first_name', 'surname', 'gender', 'registration_date', 'status']);
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['first_name', 'surname', 'gender', 'registration_date', 'status']);
     }
 
     public function test_gender_must_be_valid_enum(): void
@@ -129,8 +129,8 @@ class StudentTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/students', $this->validPayload(['gender' => 'Robot']))
-             ->assertStatus(422)
-             ->assertJsonValidationErrors(['gender']);
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['gender']);
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────────

@@ -24,8 +24,8 @@ class UserModelTest extends TestCase
     public function test_can_view_all_branches_for_admin_and_ed(): void
     {
         $admin = User::factory()->admin()->make();
-        $ed    = User::factory()->executiveDirector()->make();
-        $tc    = User::factory()->principal()->make();
+        $ed = User::factory()->executiveDirector()->make();
+        $tc = User::factory()->principal()->make();
 
         $this->assertTrue($admin->canViewAllBranches());
         $this->assertTrue($ed->canViewAllBranches());

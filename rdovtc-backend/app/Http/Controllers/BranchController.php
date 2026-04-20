@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Branch;
-use App\Models\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,12 +11,14 @@ class BranchController extends Controller
     public function index(): JsonResponse
     {
         $branches = Branch::orderBy('branch_name')->get();
+
         return response()->json($branches);
     }
 
     public function show(int $id): JsonResponse
     {
         $branch = Branch::with('courses')->findOrFail($id);
+
         return response()->json($branch);
     }
 
@@ -25,8 +26,8 @@ class BranchController extends Controller
     {
         $validated = $request->validate([
             'branch_name' => 'required|string|max:100|unique:branches,branch_name',
-            'course_ids'  => 'nullable|array',
-            'course_ids.*'=> 'integer|exists:courses,id',
+            'course_ids' => 'nullable|array',
+            'course_ids.*' => 'integer|exists:courses,id',
         ]);
 
         $branch = Branch::create(['branch_name' => $validated['branch_name']]);
@@ -37,7 +38,7 @@ class BranchController extends Controller
 
         return response()->json([
             'message' => 'Branch created successfully.',
-            'branch'  => $branch->load('courses'),
+            'branch' => $branch->load('courses'),
         ], 201);
     }
 

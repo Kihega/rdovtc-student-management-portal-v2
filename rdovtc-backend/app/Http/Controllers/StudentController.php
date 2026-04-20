@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class StudentController extends Controller
 {
@@ -18,7 +17,7 @@ class StudentController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user     = $request->user();
+        $user = $request->user();
         $isPrincipal = $user->role === 'Principal/TC';
 
         $query = Student::query();
@@ -54,7 +53,7 @@ class StudentController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $user    = $request->user();
+        $user = $request->user();
         $student = Student::findOrFail($id);
 
         // Principal/TC can only view their branch's students
@@ -73,32 +72,32 @@ class StudentController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'first_name'          => 'required|string|max:100',
-            'middle_name'         => 'nullable|string|max:100',
-            'surname'             => 'required|string|max:100',
-            'gender'              => 'required|in:Male,Female,Other',
-            'course'              => 'required|string|max:50',
-            'branch_name'         => 'required|string|max:200',
-            'date_of_birth'       => 'nullable|date',
-            'village'             => 'nullable|string|max:100',
-            'ward'                => 'nullable|string|max:100',
-            'district'            => 'nullable|string|max:100',
-            'region'              => 'nullable|string|max:100',
-            'education_level'     => 'nullable|string|max:100',
-            'student_telephone'   => 'nullable|string|max:255',
+            'first_name' => 'required|string|max:100',
+            'middle_name' => 'nullable|string|max:100',
+            'surname' => 'required|string|max:100',
+            'gender' => 'required|in:Male,Female,Other',
+            'course' => 'required|string|max:50',
+            'branch_name' => 'required|string|max:200',
+            'date_of_birth' => 'nullable|date',
+            'village' => 'nullable|string|max:100',
+            'ward' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'region' => 'nullable|string|max:100',
+            'education_level' => 'nullable|string|max:100',
+            'student_telephone' => 'nullable|string|max:255',
             'registration_number' => 'nullable|string|max:100',
-            'registration_date'   => 'required|date',
-            'residential_status'  => 'nullable|in:day,boarding',
-            'prem_no'             => 'nullable|string|max:100',
-            'std_vii_index_no'    => 'nullable|string|max:100',
-            'form_iv_index_no'    => 'nullable|string|max:100',
-            'status'              => 'required|in:Long Course,Short Course',
-            'duration'            => 'nullable|string|max:200',
-            'sponsor'             => 'nullable|string|max:255',
-            'guardian_full_name'  => 'nullable|string|max:255',
-            'guardian_address'    => 'nullable|string|max:255',
-            'guardian_telephone'  => 'nullable|string|max:255',
-            'occupation'          => 'nullable|string|max:100',
+            'registration_date' => 'required|date',
+            'residential_status' => 'nullable|in:day,boarding',
+            'prem_no' => 'nullable|string|max:100',
+            'std_vii_index_no' => 'nullable|string|max:100',
+            'form_iv_index_no' => 'nullable|string|max:100',
+            'status' => 'required|in:Long Course,Short Course',
+            'duration' => 'nullable|string|max:200',
+            'sponsor' => 'nullable|string|max:255',
+            'guardian_full_name' => 'nullable|string|max:255',
+            'guardian_address' => 'nullable|string|max:255',
+            'guardian_telephone' => 'nullable|string|max:255',
+            'occupation' => 'nullable|string|max:100',
         ]);
 
         // Principal/TC can only register students for their own branch
@@ -108,7 +107,7 @@ class StudentController extends Controller
 
         // Prefix sponsor value to match original system format
         if (! empty($validated['sponsor'])) {
-            $validated['sponsor'] = '$' . $validated['sponsor'];
+            $validated['sponsor'] = '$'.$validated['sponsor'];
         }
 
         $student = Student::create($validated);
@@ -124,7 +123,7 @@ class StudentController extends Controller
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $user    = $request->user();
+        $user = $request->user();
         $student = Student::findOrFail($id);
 
         // Principal/TC can only delete from their branch

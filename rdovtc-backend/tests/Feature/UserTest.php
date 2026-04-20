@@ -28,14 +28,14 @@ class UserTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/users', [
-            'username'             => 'newprincipal@vtc.com',
-            'password'             => 'password123',
-            'password_confirmation'=> 'password123',
-            'role'                 => 'Principal/TC',
-            'branch_name'          => 'VTC-Mdabulo',
-            'phone'                => '+255700000001',
+            'username' => 'newprincipal@vtc.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'Principal/TC',
+            'branch_name' => 'VTC-Mdabulo',
+            'phone' => '+255700000001',
         ])->assertStatus(201)
-          ->assertJsonFragment(['username' => 'newprincipal@vtc.com']);
+            ->assertJsonFragment(['username' => 'newprincipal@vtc.com']);
 
         $this->assertDatabaseHas('users', ['username' => 'newprincipal@vtc.com']);
     }
@@ -45,11 +45,11 @@ class UserTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/users', [
-            'username'             => 'nob@vtc.com',
-            'password'             => 'password123',
-            'password_confirmation'=> 'password123',
-            'role'                 => 'Principal/TC',
-            'phone'                => '+255700000002',
+            'username' => 'nob@vtc.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'Principal/TC',
+            'phone' => '+255700000002',
             // branch_name intentionally omitted
         ])->assertStatus(422);
     }
@@ -60,13 +60,13 @@ class UserTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/users', [
-            'username'             => 'exists@vtc.com',
-            'password'             => 'password123',
-            'password_confirmation'=> 'password123',
-            'role'                 => 'Admin',
-            'phone'                => '+255700000003',
+            'username' => 'exists@vtc.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'Admin',
+            'phone' => '+255700000003',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['username']);
+            ->assertJsonValidationErrors(['username']);
     }
 
     public function test_role_must_be_valid(): void
@@ -74,13 +74,13 @@ class UserTest extends TestCase
         $this->actingAsAdmin();
 
         $this->postJson('/api/users', [
-            'username'             => 'bad@vtc.com',
-            'password'             => 'password123',
-            'password_confirmation'=> 'password123',
-            'role'                 => 'SuperHacker',
-            'phone'                => '+255700000004',
+            'username' => 'bad@vtc.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'SuperHacker',
+            'phone' => '+255700000004',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors(['role']);
+            ->assertJsonValidationErrors(['role']);
     }
 
     public function test_admin_can_delete_other_user(): void
