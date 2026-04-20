@@ -35,12 +35,12 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'          => $user->id,
-                'username'    => $user->username,
-                'role'        => $user->role,
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'role' => $user->role,
                 'branch_name' => $user->branch_name,
-                'phone'       => $user->phone,
+                'phone' => $user->phone,
             ],
         ]);
     }
@@ -53,11 +53,11 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'id'          => $user->id,
-            'username'    => $user->username,
-            'role'        => $user->role,
+            'id' => $user->id,
+            'username' => $user->username,
+            'role' => $user->role,
             'branch_name' => $user->branch_name,
-            'phone'       => $user->phone,
+            'phone' => $user->phone,
         ]);
     }
 
@@ -78,7 +78,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'new_password'     => 'required|string|min:6|confirmed',
+            'new_password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = $request->user();
@@ -99,9 +99,9 @@ class AuthController extends Controller
     public function changePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'username'         => 'required|string',
-            'old_password'     => 'required|string',
-            'new_password'     => 'required|string|min:6|confirmed',
+            'username' => 'required|string',
+            'old_password' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = User::where('username', $request->username)->first();

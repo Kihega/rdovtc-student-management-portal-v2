@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Branch extends Model
 {
     protected $table = 'branches';
+
     public $timestamps = false;
 
     protected $fillable = ['branch_name'];

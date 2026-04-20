@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Course extends Model
 {
     protected $table = 'courses';
+
     public $timestamps = false;
 
     protected $fillable = ['course_code', 'course_name'];
