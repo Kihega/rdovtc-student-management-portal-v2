@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Facade;
+
 return [
 
     'name' => env('APP_NAME', 'RDO VTC Student System'),
@@ -39,5 +41,5 @@ return [
         Laravel\Sanctum\SanctumServiceProvider::class,
     ],
 
-    'aliases' => Illuminate\Support\Facades\Facade::defaultAliases()->merge([])->toArray(),
+    'aliases' => Facade::defaultAliases()->merge([])->toArray(),
 ];
