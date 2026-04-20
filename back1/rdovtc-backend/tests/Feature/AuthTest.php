@@ -15,12 +15,12 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->admin()->create([
             'username' => 'admin@rdovtc.com',
-            'password' => Hash::make('test-valid-pw'),
+            'password' => Hash::make('secret123'),
         ]);
 
         $response = $this->postJson('/api/auth/login', [
             'username' => 'admin@rdovtc.com',
-            'password' => 'test-valid-pw',
+            'password' => 'secret123',
         ]);
 
         $response->assertStatus(200)
@@ -31,12 +31,12 @@ class AuthTest extends TestCase
     {
         User::factory()->create([
             'username' => 'user@rdovtc.com',
-            'password' => Hash::make('test-correct-pw'),
+            'password' => Hash::make('correctpass'),
         ]);
 
         $this->postJson('/api/auth/login', [
             'username' => 'user@rdovtc.com',
-            'password' => 'test-wrong-pw',
+            'password' => 'wrongpass',
         ])->assertStatus(422);
     }
 
@@ -89,24 +89,24 @@ class AuthTest extends TestCase
     {
         User::factory()->create([
             'username' => 'change@rdovtc.com',
-            'password' => Hash::make('test-old-pw-123'),
+            'password' => Hash::make('oldpass123'),
         ]);
 
         $this->actingAsAdmin();
 
-        $user = User::factory()->create(['password' => Hash::make('test-old-pw-123')]);
+        $user = User::factory()->create(['password' => Hash::make('oldpass123')]);
 
         Sanctum::actingAs($user, ['*']);
 
         $this->putJson('/api/auth/password', [
-            'current_password' => 'test-old-pw-123',
-            'new_password' => 'test-new-pw-456',
-            'new_password_confirmation' => 'test-new-pw-456',
+            'current_password' => 'oldpass123',
+            'new_password' => 'newpass456',
+            'new_password_confirmation' => 'newpass456',
         ])->assertStatus(200);
 
         // Old password no longer works
-        $this->assertFalse(Hash::check('test-old-pw-123', $user->fresh()->password));
-        $this->assertTrue(Hash::check('test-new-pw-456', $user->fresh()->password));
+        $this->assertFalse(Hash::check('oldpass123', $user->fresh()->password));
+        $this->assertTrue(Hash::check('newpass456', $user->fresh()->password));
     }
 
     public function test_change_password_fails_with_wrong_current_password(): void
@@ -114,9 +114,9 @@ class AuthTest extends TestCase
         $this->actingAsAdmin();
 
         $this->putJson('/api/auth/password', [
-            'current_password' => 'test-wrong-current',
-            'new_password' => 'test-new-pw-456',
-            'new_password_confirmation' => 'test-new-pw-456',
+            'current_password' => 'wrongcurrent',
+            'new_password' => 'newpass456',
+            'new_password_confirmation' => 'newpass456',
         ])->assertStatus(422);
     }
 
@@ -124,14 +124,14 @@ class AuthTest extends TestCase
     {
         User::factory()->create([
             'username' => 'pub@rdovtc.com',
-            'password' => Hash::make('test-pub-old-123'),
+            'password' => Hash::make('oldpub123'),
         ]);
 
         $this->postJson('/api/auth/change-password', [
             'username' => 'pub@rdovtc.com',
-            'old_password' => 'test-pub-old-123',
-            'new_password' => 'test-pub-new-456',
-            'new_password_confirmation' => 'test-pub-new-456',
+            'old_password' => 'oldpub123',
+            'new_password' => 'newpub456',
+            'new_password_confirmation' => 'newpub456',
         ])->assertStatus(200);
     }
 }
