@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usersApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import toast from 'react-hot-toast';
@@ -24,14 +24,14 @@ export default function UsersList({ onChanged }: Props) {
   const [confirm, setConfirm] = useState<User | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     usersApi.list()
       .then(r => setUsers(r.data))
       .catch(() => toast.error('Failed to load users.'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const doDelete = async () => {
     if (!confirm) return;

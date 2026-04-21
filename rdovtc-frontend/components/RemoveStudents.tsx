@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { studentsApi, branchesApi, coursesApi } from '@/lib/api';
+import { studentsApi, branchesApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import toast from 'react-hot-toast';
 
