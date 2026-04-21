@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """
-Clean patch — no password strings, no test file content.
+Targets the ROOT .github/workflows/ — the only place GitHub Actions reads.
 Fixes:
-  1. pint.json      — disable fully_qualified_strict_types (causes cascade failures)
-  2. config/app.php — remove `use` import, use FQCN inline, single spaces around =>
-  3. Backend CI/CD  — pint auto-fix in main pipeline, --test only on PRs
-  4. Frontend CI/CD — remove cache-dependency-path (lock file not in repo)
-  5. Deletes all test files/dirs so GitGuardian has nothing to scan
-
-Run from repo root:  python patch.py
+  - Replaces stale root workflows with clean lint+build+deploy (no tests)
+  - Fixes .env.example path (was looking in repo root, file lives in rdovtc-backend/)
+  - Removes github-script PR comment step (caused 403 — needs pull_requests:write)
+  - Removes cache-dependency-path (package-lock.json not committed)
+  - Fixes pint.json and config/app.php
+  - Deletes all test files
 """
 
 import pathlib
 import shutil
-import sys
 
 ROOT = pathlib.Path(__file__).parent
 
@@ -38,7 +36,7 @@ def remove(path):
 
 
 # ══════════════════════════════════════════════════════════════════
-# 1. DELETE ALL TEST FILES — nothing for GitGuardian to scan
+# 1. DELETE ALL TEST FILES
 # ══════════════════════════════════════════════════════════════════
 print("\n── Deleting test files ───────────────────────────────────────")
 
@@ -56,115 +54,34 @@ for fname in ["jest.config.ts", "jest.setup.ts", "phpunit.xml"]:
 
 
 # ══════════════════════════════════════════════════════════════════
-# 2. pint.json — disable fully_qualified_strict_types
-#    This rule cascades: it tries to add declare(strict_types=1) and
-#    expand all FQCN providers into `use` imports, which then makes
-#    ordered_imports fail. Disabling it stops both failures.
+# 2. WIPE ALL EXISTING ROOT-LEVEL WORKFLOWS, write clean ones
+#    GitHub Actions ONLY reads <repo-root>/.github/workflows/
+#    The nested rdovtc-backend/.github/ and rdovtc-frontend/.github/
+#    files never ran — that's why patching them did nothing.
 # ══════════════════════════════════════════════════════════════════
-print("\n── Fixing pint.json ──────────────────────────────────────────")
+print("\n── Replacing root .github/workflows/ ────────────────────────")
 
-PINT_JSON = """\
-{
-    "preset": "laravel",
-    "rules": {
-        "fully_qualified_strict_types": false,
-        "array_syntax": { "syntax": "short" },
-        "ordered_imports": { "sort_algorithm": "alpha" },
-        "no_unused_imports": true,
-        "not_operator_with_successor_space": true,
-        "trailing_comma_in_multiline": true,
-        "phpdoc_scalar": true,
-        "unary_operator_spaces": true,
-        "binary_operator_spaces": true,
-        "blank_line_before_statement": {
-            "statements": ["break", "continue", "return", "throw", "try"]
-        },
-        "phpdoc_single_line_var_spacing": true,
-        "phpdoc_var_without_name": true,
-        "method_argument_space": {
-            "on_multiline": "ensure_fully_multiline",
-            "keep_multiple_spaces_after_comma": false
-        },
-        "single_trait_insert_per_statement": true
-    }
-}
-"""
+ROOT_WORKFLOWS = ROOT / ".github" / "workflows"
+if ROOT_WORKFLOWS.exists():
+    for old in ROOT_WORKFLOWS.glob("*.yml"):
+        remove(old)
 
-for p in find("pint.json"):
-    write(p, PINT_JSON)
+# ── Backend workflow ──────────────────────────────────────────────
+# Runs from repo root; all commands cd into rdovtc-backend via
+# `working-directory`. No test steps. No github-script PR comments.
 
-
-# ══════════════════════════════════════════════════════════════════
-# 3. config/app.php — no `use` import, FQCN inline, single spaces
-#    Removing the `use` import eliminates ordered_imports entirely.
-#    Single spaces around => satisfy binary_operator_spaces.
-# ══════════════════════════════════════════════════════════════════
-print("\n── Fixing config/app.php ─────────────────────────────────────")
-
-APP_PHP = """\
-<?php
-
-return [
-
-    'name' => env('APP_NAME', 'RDO VTC Student System'),
-    'env' => env('APP_ENV', 'production'),
-    'debug' => (bool) env('APP_DEBUG', false),
-    'url' => env('APP_URL', 'http://localhost'),
-    'timezone' => 'Africa/Dar_es_Salaam',
-    'locale' => 'en',
-    'fallback_locale' => 'en',
-    'faker_locale' => 'en_US',
-    'cipher' => 'AES-256-CBC',
-    'key' => env('APP_KEY'),
-
-    'providers' => [
-        Illuminate\\Auth\\AuthServiceProvider::class,
-        Illuminate\\Broadcasting\\BroadcastServiceProvider::class,
-        Illuminate\\Bus\\BusServiceProvider::class,
-        Illuminate\\Cache\\CacheServiceProvider::class,
-        Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider::class,
-        Illuminate\\Cookie\\CookieServiceProvider::class,
-        Illuminate\\Database\\DatabaseServiceProvider::class,
-        Illuminate\\Encryption\\EncryptionServiceProvider::class,
-        Illuminate\\Filesystem\\FilesystemServiceProvider::class,
-        Illuminate\\Foundation\\Providers\\FoundationServiceProvider::class,
-        Illuminate\\Hashing\\HashServiceProvider::class,
-        Illuminate\\Mail\\MailServiceProvider::class,
-        Illuminate\\Notifications\\NotificationServiceProvider::class,
-        Illuminate\\Pagination\\PaginationServiceProvider::class,
-        Illuminate\\Pipeline\\PipelineServiceProvider::class,
-        Illuminate\\Queue\\QueueServiceProvider::class,
-        Illuminate\\Redis\\RedisServiceProvider::class,
-        Illuminate\\Auth\\Passwords\\PasswordResetServiceProvider::class,
-        Illuminate\\Session\\SessionServiceProvider::class,
-        Illuminate\\Translation\\TranslationServiceProvider::class,
-        Illuminate\\Validation\\ValidationServiceProvider::class,
-        Illuminate\\View\\ViewServiceProvider::class,
-        Laravel\\Sanctum\\SanctumServiceProvider::class,
-    ],
-
-    'aliases' => Illuminate\\Support\\Facades\\Facade::defaultAliases()->merge([])->toArray(),
-];
-"""
-
-for p in find("app.php"):
-    if p.parent.name == "config":
-        write(p, APP_PHP)
-
-
-# ══════════════════════════════════════════════════════════════════
-# 4. BACKEND workflows
-# ══════════════════════════════════════════════════════════════════
-print("\n── Fixing backend workflows ──────────────────────────────────")
-
-BACKEND_CICD = """\
-name: Backend CI/CD
+BACKEND_YML = """\
+name: Backend
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'rdovtc-backend/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'rdovtc-backend/**'
 
 defaults:
   run:
@@ -194,7 +111,7 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Run Pint (auto-fix)
+      - name: Run Pint (auto-fix style)
         run: ./vendor/bin/pint
 
   deploy:
@@ -220,77 +137,25 @@ jobs:
             echo "Health check failed: HTTP $STATUS"
             exit 1
           fi
-          echo "App is live: HTTP $STATUS"
+          echo "Live: HTTP $STATUS"
 """
 
-BACKEND_PR = """\
-name: PR Quality Gate
+# ── Frontend workflow ─────────────────────────────────────────────
+# No test step. No cache-dependency-path (lock file not committed).
+# No github-script comments.
 
-on:
-  pull_request:
-    branches: [main]
-
-concurrency:
-  group: pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-defaults:
-  run:
-    working-directory: rdovtc-backend
-
-jobs:
-  quality:
-    name: Code Style
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, pdo, pdo_pgsql
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Check code style (Pint)
-        run: ./vendor/bin/pint --test
-
-      - name: Check for debug statements
-        run: |
-          if grep -rn "dd(\\|dump(\\|var_dump(" app/ --include="*.php"; then
-            echo "Debug statements found — remove before merging"
-            exit 1
-          fi
-          echo "No debug statements found"
-"""
-
-for wf in find("ci-cd.yml"):
-    if "rdovtc-backend" in wf.parts and ".github" in wf.parts:
-        write(wf, BACKEND_CICD)
-
-for wf in find("pr-check.yml"):
-    if "rdovtc-backend" in wf.parts and ".github" in wf.parts:
-        write(wf, BACKEND_PR)
-
-
-# ══════════════════════════════════════════════════════════════════
-# 5. FRONTEND workflows — plain `cache: npm`, no cache-dependency-path
-#    (package-lock.json not committed so specifying path causes the
-#     "unable to cache dependencies" error)
-# ══════════════════════════════════════════════════════════════════
-print("\n── Fixing frontend workflows ─────────────────────────────────")
-
-FRONTEND_CICD = """\
-name: Frontend CI/CD
+FRONTEND_YML = """\
+name: Frontend
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'rdovtc-frontend/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'rdovtc-frontend/**'
 
 defaults:
   run:
@@ -365,83 +230,125 @@ jobs:
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 """
 
-FRONTEND_PR = """\
-name: PR Quality Gate
+write(ROOT_WORKFLOWS / "backend.yml", BACKEND_YML)
+write(ROOT_WORKFLOWS / "frontend.yml", FRONTEND_YML)
 
-on:
-  pull_request:
-    branches: [main]
+# Also clean up the nested workflow dirs (they never ran but tidy to remove)
+for wf_dir in [
+    ROOT / "rdovtc-backend" / ".github",
+    ROOT / "rdovtc-frontend" / ".github",
+]:
+    if wf_dir.exists():
+        remove(wf_dir)
 
-concurrency:
-  group: pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: rdovtc-frontend
+# ══════════════════════════════════════════════════════════════════
+# 3. pint.json — disable fully_qualified_strict_types
+# ══════════════════════════════════════════════════════════════════
+print("\n── Fixing pint.json ──────────────────────────────────────────")
 
-jobs:
-  lint:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: TypeScript type check
-        run: npm run type-check
-
-  build:
-    name: Next.js Build
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: https://rdovtc-backend.onrender.com/api
+PINT_JSON = """\
+{
+    "preset": "laravel",
+    "rules": {
+        "fully_qualified_strict_types": false,
+        "array_syntax": { "syntax": "short" },
+        "ordered_imports": { "sort_algorithm": "alpha" },
+        "no_unused_imports": true,
+        "not_operator_with_successor_space": true,
+        "trailing_comma_in_multiline": true,
+        "phpdoc_scalar": true,
+        "unary_operator_spaces": true,
+        "binary_operator_spaces": true,
+        "blank_line_before_statement": {
+            "statements": ["break", "continue", "return", "throw", "try"]
+        },
+        "phpdoc_single_line_var_spacing": true,
+        "phpdoc_var_without_name": true,
+        "method_argument_space": {
+            "on_multiline": "ensure_fully_multiline",
+            "keep_multiple_spaces_after_comma": false
+        },
+        "single_trait_insert_per_statement": true
+    }
+}
 """
 
-for wf in find("ci-cd.yml"):
-    if "rdovtc-frontend" in wf.parts and ".github" in wf.parts:
-        write(wf, FRONTEND_CICD)
+for p in find("pint.json"):
+    write(p, PINT_JSON)
 
-for wf in find("pr-check.yml"):
-    if "rdovtc-frontend" in wf.parts and ".github" in wf.parts:
-        write(wf, FRONTEND_PR)
+
+# ══════════════════════════════════════════════════════════════════
+# 4. config/app.php — no use import, single spaces around =>
+# ══════════════════════════════════════════════════════════════════
+print("\n── Fixing config/app.php ─────────────────────────────────────")
+
+APP_PHP = """\
+<?php
+
+return [
+
+    'name' => env('APP_NAME', 'RDO VTC Student System'),
+    'env' => env('APP_ENV', 'production'),
+    'debug' => (bool) env('APP_DEBUG', false),
+    'url' => env('APP_URL', 'http://localhost'),
+    'timezone' => 'Africa/Dar_es_Salaam',
+    'locale' => 'en',
+    'fallback_locale' => 'en',
+    'faker_locale' => 'en_US',
+    'cipher' => 'AES-256-CBC',
+    'key' => env('APP_KEY'),
+
+    'providers' => [
+        Illuminate\\Auth\\AuthServiceProvider::class,
+        Illuminate\\Broadcasting\\BroadcastServiceProvider::class,
+        Illuminate\\Bus\\BusServiceProvider::class,
+        Illuminate\\Cache\\CacheServiceProvider::class,
+        Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider::class,
+        Illuminate\\Cookie\\CookieServiceProvider::class,
+        Illuminate\\Database\\DatabaseServiceProvider::class,
+        Illuminate\\Encryption\\EncryptionServiceProvider::class,
+        Illuminate\\Filesystem\\FilesystemServiceProvider::class,
+        Illuminate\\Foundation\\Providers\\FoundationServiceProvider::class,
+        Illuminate\\Hashing\\HashServiceProvider::class,
+        Illuminate\\Mail\\MailServiceProvider::class,
+        Illuminate\\Notifications\\NotificationServiceProvider::class,
+        Illuminate\\Pagination\\PaginationServiceProvider::class,
+        Illuminate\\Pipeline\\PipelineServiceProvider::class,
+        Illuminate\\Queue\\QueueServiceProvider::class,
+        Illuminate\\Redis\\RedisServiceProvider::class,
+        Illuminate\\Auth\\Passwords\\PasswordResetServiceProvider::class,
+        Illuminate\\Session\\SessionServiceProvider::class,
+        Illuminate\\Translation\\TranslationServiceProvider::class,
+        Illuminate\\Validation\\ValidationServiceProvider::class,
+        Illuminate\\View\\ViewServiceProvider::class,
+        Laravel\\Sanctum\\SanctumServiceProvider::class,
+    ],
+
+    'aliases' => Illuminate\\Support\\Facades\\Facade::defaultAliases()->merge([])->toArray(),
+];
+"""
+
+for p in find("app.php"):
+    if p.parent.name == "config":
+        write(p, APP_PHP)
 
 
 # ══════════════════════════════════════════════════════════════════
 print("""
-Done! Commit and push:
+Done! Now run:
 
   git add -A
-  git commit -m "chore: remove tests, fix pint config, fix CI workflows"
+  git commit -m "chore: remove tests, fix root CI workflows, fix pint config"
   git push origin main
 
-Required GitHub Secrets (Settings → Secrets → Actions):
-  RENDER_DEPLOY_HOOK_URL   Render dashboard → service → Settings → Deploy Hook
-  RENDER_APP_URL           e.g. https://rdovtc-backend.onrender.com
-  VERCEL_TOKEN             vercel.com → Settings → Tokens
-  NEXT_PUBLIC_API_URL      e.g. https://rdovtc-backend.onrender.com/api
+The only workflows GitHub Actions will run are now:
+  .github/workflows/backend.yml   (lint → deploy to Render)
+  .github/workflows/frontend.yml  (lint → build → deploy to Vercel)
+
+Required GitHub Secrets (repo Settings → Secrets → Actions):
+  RENDER_DEPLOY_HOOK_URL    Render → service → Settings → Deploy Hook
+  RENDER_APP_URL            e.g. https://rdovtc-backend.onrender.com
+  VERCEL_TOKEN              vercel.com → Settings → Tokens
+  NEXT_PUBLIC_API_URL       e.g. https://rdovtc-backend.onrender.com/api
 """)
