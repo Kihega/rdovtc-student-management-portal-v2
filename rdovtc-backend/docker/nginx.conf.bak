@@ -13,33 +13,21 @@ http {
     sendfile on;
     keepalive_timeout 65;
 
-    # Increased for slow Render cold-start DB connections
-    fastcgi_read_timeout 120;
-    fastcgi_connect_timeout 120;
-    fastcgi_send_timeout 120;
-
     server {
         listen 8080;
         server_name _;
         root /var/www/html/public;
         index index.php;
 
+        # Security headers
         add_header X-Frame-Options "SAMEORIGIN";
         add_header X-Content-Type-Options "nosniff";
         add_header X-XSS-Protection "1; mode=block";
 
-        # Health check — nginx intercepts before PHP (faster response)
-        location = /health {
-            access_log off;
-            return 200 '{"status":"ok"}';
-            add_header Content-Type application/json;
-        }
-
-        # /api/health alias for monitors that prefix with /api
-        location = /api/health {
-            access_log off;
-            return 200 '{"status":"ok"}';
-            add_header Content-Type application/json;
+        # Health check for Render
+        location /health {
+            return 200 "ok";
+            add_header Content-Type text/plain;
         }
 
         location / {

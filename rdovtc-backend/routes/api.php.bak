@@ -8,23 +8,6 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────
-// ROOT — shows API info instead of 404
-// ─────────────────────────────────────────────
-Route::get('/', function () {
-    return response()->json([
-        'service' => 'RDO VTC Backend API',
-        'version' => '2.0',
-        'status'  => 'running',
-        'note'    => 'Use /api/auth/login to authenticate.',
-    ]);
-});
-
-Route::get('/health', function () {
-    return response()->json(['status' => 'ok']);
-});
-
-
-// ─────────────────────────────────────────────
 // PUBLIC ROUTES
 // ─────────────────────────────────────────────
 Route::post('/auth/login', [AuthController::class, 'login']);
