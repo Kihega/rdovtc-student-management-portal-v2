@@ -1,0 +1,29 @@
+/vendor/
+/node_modules/
+
+# Laravel environment — NEVER commit
+.env
+.env.backup
+.env.production
+
+# Storage & cache
+/storage/*.key
+/storage/app/public/
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+
+# Compiled files
+/public/hot
+/public/storage
+
+# PHPUnit
+/.phpunit.result.cache
+/coverage/
+
+# Misc
+.DS_Store
+Thumbs.db
+*.pem

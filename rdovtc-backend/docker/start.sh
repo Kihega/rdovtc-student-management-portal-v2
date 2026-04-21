@@ -18,6 +18,16 @@ echo "🔄 Running migrations..."
 php artisan migrate --force --no-interaction
 echo "✅ Migrations complete"
 
+# Seed only on a fresh database (no users = first deploy or after DB recreation)
+USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 | tr -d '[:space:]')
+if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
+  echo "🌱 Fresh database detected — running seeder..."
+  php artisan db:seed --force --no-interaction
+  echo "✅ Seed complete — all users and reference data loaded"
+else
+  echo "ℹ️  Database already has data (${USER_COUNT} users) — skipping seed"
+fi
+
 # Cache config and routes for production performance
 echo "⚡ Caching config & routes..."
 php artisan config:cache
