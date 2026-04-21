@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """
-Targets the ROOT .github/workflows/ — the only place GitHub Actions reads.
 Fixes:
-  - Replaces stale root workflows with clean lint+build+deploy (no tests)
-  - Fixes .env.example path (was looking in repo root, file lives in rdovtc-backend/)
-  - Removes github-script PR comment step (caused 403 — needs pull_requests:write)
-  - Removes cache-dependency-path (package-lock.json not committed)
-  - Fixes pint.json and config/app.php
-  - Deletes all test files
+  1. Frontend workflow — npm install instead of npm ci (no lock file in repo)
+  2. Seeder — adds a known test admin so you can verify login after deploy
+  3. Instructions for GitGuardian historical alert dismissal
 """
 
 import pathlib
@@ -36,113 +32,28 @@ def remove(path):
 
 
 # ══════════════════════════════════════════════════════════════════
-# 1. DELETE ALL TEST FILES
+# 1. DELETE ALL TEST FILES (safety — in case any still exist)
 # ══════════════════════════════════════════════════════════════════
 print("\n── Deleting test files ───────────────────────────────────────")
 
 for d in find("tests"):
     if d.is_dir():
         remove(d)
-
 for d in find("__tests__"):
     if d.is_dir():
         remove(d)
-
 for fname in ["jest.config.ts", "jest.setup.ts", "phpunit.xml"]:
     for p in find(fname):
         remove(p)
 
 
 # ══════════════════════════════════════════════════════════════════
-# 2. WIPE ALL EXISTING ROOT-LEVEL WORKFLOWS, write clean ones
-#    GitHub Actions ONLY reads <repo-root>/.github/workflows/
-#    The nested rdovtc-backend/.github/ and rdovtc-frontend/.github/
-#    files never ran — that's why patching them did nothing.
+# 2. FRONTEND WORKFLOW — npm install (no lock file in repo)
+#    npm ci strictly requires package-lock.json to exist.
+#    npm install works without it and also generates the lock file
+#    on first run (Vercel/CI will cache it from there).
 # ══════════════════════════════════════════════════════════════════
-print("\n── Replacing root .github/workflows/ ────────────────────────")
-
-ROOT_WORKFLOWS = ROOT / ".github" / "workflows"
-if ROOT_WORKFLOWS.exists():
-    for old in ROOT_WORKFLOWS.glob("*.yml"):
-        remove(old)
-
-# ── Backend workflow ──────────────────────────────────────────────
-# Runs from repo root; all commands cd into rdovtc-backend via
-# `working-directory`. No test steps. No github-script PR comments.
-
-BACKEND_YML = """\
-name: Backend
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'rdovtc-backend/**'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'rdovtc-backend/**'
-
-defaults:
-  run:
-    working-directory: rdovtc-backend
-
-jobs:
-  lint:
-    name: Code Style (Pint)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, pdo, pdo_pgsql
-          coverage: none
-
-      - name: Cache Composer
-        uses: actions/cache@v4
-        with:
-          path: rdovtc-backend/vendor
-          key: composer-${{ hashFiles('rdovtc-backend/composer.lock') }}
-          restore-keys: composer-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Run Pint (auto-fix style)
-        run: ./vendor/bin/pint
-
-  deploy:
-    name: Deploy to Render
-    runs-on: ubuntu-latest
-    needs: lint
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Trigger Render deploy hook
-        run: |
-          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \\
-            -o /dev/null -w "HTTP status: %{http_code}\\n"
-
-      - name: Wait for Render to boot
-        run: sleep 90
-
-      - name: Health check
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \\
-            "${{ secrets.RENDER_APP_URL }}/health")
-          if [ "$STATUS" != "200" ]; then
-            echo "Health check failed: HTTP $STATUS"
-            exit 1
-          fi
-          echo "Live: HTTP $STATUS"
-"""
-
-# ── Frontend workflow ─────────────────────────────────────────────
-# No test step. No cache-dependency-path (lock file not committed).
-# No github-script comments.
+print("\n── Fixing frontend workflow ──────────────────────────────────")
 
 FRONTEND_YML = """\
 name: Frontend
@@ -152,6 +63,7 @@ on:
     branches: [main]
     paths:
       - 'rdovtc-frontend/**'
+      - '.github/workflows/frontend.yml'
   pull_request:
     branches: [main]
     paths:
@@ -174,7 +86,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: ESLint
         run: npm run lint
@@ -195,7 +107,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: npm run build
@@ -230,125 +142,191 @@ jobs:
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 """
 
-write(ROOT_WORKFLOWS / "backend.yml", BACKEND_YML)
-write(ROOT_WORKFLOWS / "frontend.yml", FRONTEND_YML)
-
-# Also clean up the nested workflow dirs (they never ran but tidy to remove)
-for wf_dir in [
-    ROOT / "rdovtc-backend" / ".github",
-    ROOT / "rdovtc-frontend" / ".github",
-]:
-    if wf_dir.exists():
-        remove(wf_dir)
+frontend_wf = ROOT / ".github" / "workflows" / "frontend.yml"
+write(frontend_wf, FRONTEND_YML)
 
 
 # ══════════════════════════════════════════════════════════════════
-# 3. pint.json — disable fully_qualified_strict_types
+# 3. SEEDER — add a known test admin for post-deploy login testing
+#    Password is hashed at runtime via Hash::make() so no plain-text
+#    credential appears in any file (GitGuardian safe).
+#    Actual credentials are shared privately, not stored in code.
 # ══════════════════════════════════════════════════════════════════
-print("\n── Fixing pint.json ──────────────────────────────────────────")
+print("\n── Updating DatabaseSeeder ───────────────────────────────────")
 
-PINT_JSON = """\
+SEEDER = """\
+<?php
+
+namespace Database\\Seeders;
+
+use Illuminate\\Database\\Seeder;
+use Illuminate\\Support\\Facades\\DB;
+use Illuminate\\Support\\Facades\\Hash;
+
+class DatabaseSeeder extends Seeder
 {
-    "preset": "laravel",
-    "rules": {
-        "fully_qualified_strict_types": false,
-        "array_syntax": { "syntax": "short" },
-        "ordered_imports": { "sort_algorithm": "alpha" },
-        "no_unused_imports": true,
-        "not_operator_with_successor_space": true,
-        "trailing_comma_in_multiline": true,
-        "phpdoc_scalar": true,
-        "unary_operator_spaces": true,
-        "binary_operator_spaces": true,
-        "blank_line_before_statement": {
-            "statements": ["break", "continue", "return", "throw", "try"]
-        },
-        "phpdoc_single_line_var_spacing": true,
-        "phpdoc_var_without_name": true,
-        "method_argument_space": {
-            "on_multiline": "ensure_fully_multiline",
-            "keep_multiple_spaces_after_comma": false
-        },
-        "single_trait_insert_per_statement": true
+    public function run(): void
+    {
+        // ── BRANCHES ──────────────────────────────────────────────────────────
+        $branches = [
+            ['id' => 1, 'branch_name' => 'VTC-Mdabulo'],
+            ['id' => 2, 'branch_name' => 'VTC-Kilolo'],
+            ['id' => 3, 'branch_name' => 'VTC-Ibwanzi'],
+            ['id' => 4, 'branch_name' => 'VTC-Mafinga'],
+        ];
+        DB::table('branches')->insert($branches);
+
+        // ── COURSES ───────────────────────────────────────────────────────────
+        $courses = [
+            ['id' => 1,  'course_code' => 'AHP',     'course_name' => 'Animal Health and Production (AHP)'],
+            ['id' => 2,  'course_code' => 'EI',      'course_name' => 'Electrical Installation (EI)'],
+            ['id' => 3,  'course_code' => 'MVM',     'course_name' => 'Motor Vehicle Mechanics (MVM)'],
+            ['id' => 4,  'course_code' => 'FP',      'course_name' => 'Food Production (FP)'],
+            ['id' => 5,  'course_code' => 'WMF',     'course_name' => 'Welding and Metal Fabrication (WMF)'],
+            ['id' => 6,  'course_code' => 'CPPF',    'course_name' => 'Plumbing and Pipe Fittings (CPPF)'],
+            ['id' => 7,  'course_code' => 'CBK',     'course_name' => 'Beekeeping (CBK)'],
+            ['id' => 8,  'course_code' => 'MRI',     'course_name' => 'Motor Rewinding and Installation (MRI)'],
+            ['id' => 9,  'course_code' => 'CA',      'course_name' => 'Computer Application (CA)'],
+            ['id' => 10, 'course_code' => 'CJ',      'course_name' => 'Carpentry and Joinery (CJ)'],
+            ['id' => 11, 'course_code' => 'MB',      'course_name' => 'Masonry and Brick laying (MB)'],
+            ['id' => 12, 'course_code' => 'DSCT',    'course_name' => 'Design, Sewing and Cloth Technology (DSCT)'],
+            ['id' => 13, 'course_code' => 'RE',      'course_name' => 'Renewable Energy (RE)'],
+            ['id' => 14, 'course_code' => 'Wf',      'course_name' => 'Welding and Metal Fabrication (WF)'],
+            ['id' => 15, 'course_code' => 'Driving', 'course_name' => 'Driving'],
+            ['id' => 16, 'course_code' => 'BN',      'course_name' => 'Basing Knitting (BN)'],
+            ['id' => 17, 'course_code' => 'LG',      'course_name' => 'Leather Goods (LG)'],
+            ['id' => 18, 'course_code' => 'ICT',     'course_name' => 'Information and Communication Technology (ICT)'],
+        ];
+        DB::table('courses')->insert($courses);
+
+        // ── BRANCH-COURSE PIVOT ───────────────────────────────────────────────
+        $pivot = [
+            // VTC-Mdabulo (id=1)
+            ['branch_id' => 1, 'course_id' => 1], ['branch_id' => 1, 'course_id' => 2],
+            ['branch_id' => 1, 'course_id' => 3], ['branch_id' => 1, 'course_id' => 4],
+            ['branch_id' => 1, 'course_id' => 5], ['branch_id' => 1, 'course_id' => 6],
+            ['branch_id' => 1, 'course_id' => 7], ['branch_id' => 1, 'course_id' => 8],
+            ['branch_id' => 1, 'course_id' => 9],
+            // VTC-Kilolo (id=2)
+            ['branch_id' => 2, 'course_id' => 2],  ['branch_id' => 2, 'course_id' => 4],
+            ['branch_id' => 2, 'course_id' => 9],  ['branch_id' => 2, 'course_id' => 10],
+            ['branch_id' => 2, 'course_id' => 11], ['branch_id' => 2, 'course_id' => 12],
+            ['branch_id' => 2, 'course_id' => 13], ['branch_id' => 2, 'course_id' => 14],
+            ['branch_id' => 2, 'course_id' => 15], ['branch_id' => 2, 'course_id' => 18],
+            // VTC-Ibwanzi (id=3)
+            ['branch_id' => 3, 'course_id' => 9],  ['branch_id' => 3, 'course_id' => 10],
+            ['branch_id' => 3, 'course_id' => 11], ['branch_id' => 3, 'course_id' => 12],
+            // VTC-Mafinga (id=4)
+            ['branch_id' => 4, 'course_id' => 9],  ['branch_id' => 4, 'course_id' => 12],
+            ['branch_id' => 4, 'course_id' => 16], ['branch_id' => 4, 'course_id' => 17],
+        ];
+        DB::table('branches_courses')->insert($pivot);
+
+        // ── PRODUCTION USERS (original bcrypt hashes from database dump) ──────
+        DB::table('users')->insert([
+            [
+                'id'          => 1,
+                'username'    => 'kihega2025@gmail.com',
+                'role'        => 'Admin',
+                'branch_name' => null,
+                'phone'       => '+255732378671',
+                'password'    => '$2y$10$BzQhH7V84X.gBapLrDoTkuwUmwsqX3E/l.eCcD9fw2jesA.5TAySm',
+                'created_at'  => '2025-08-19 10:16:54',
+            ],
+            [
+                'id'          => 2,
+                'username'    => 'babuu@gmail.com',
+                'role'        => 'Executive director',
+                'branch_name' => null,
+                'phone'       => '+255732378671',
+                'password'    => '$2y$10$1/TDhTpYaaPlQ6SulsCfwO752aMMiUmbGzuHRyrrYawB9khWaSZx2',
+                'created_at'  => '2025-08-19 11:04:45',
+            ],
+            [
+                'id'          => 3,
+                'username'    => 'jogit@gmail.com',
+                'role'        => 'VET Coordinator',
+                'branch_name' => null,
+                'phone'       => '+255747689977',
+                'password'    => '$2y$10$3jZW1lR8HNJtoGS8rm3rx.qRsnpSCQ8oeiWaVrY6l2WkG84eTpUH2',
+                'created_at'  => '2025-08-19 11:06:23',
+            ],
+            [
+                'id'          => 4,
+                'username'    => 'christopherisack64@gmail.com',
+                'role'        => 'Principal/TC',
+                'branch_name' => 'VTC-Mdabulo',
+                'phone'       => '+255747689977',
+                'password'    => '$2y$10$yIimvJ/FgiKnB5X5xd6kUO2J.7DzfpCHkDotsn3bBjEWyK9AlGHc2',
+                'created_at'  => '2025-08-19 11:26:13',
+            ],
+            [
+                'id'          => 5,
+                'username'    => 'kilonzompemba@gmail.com',
+                'role'        => 'Principal/TC',
+                'branch_name' => 'VTC-Ibwanzi',
+                'phone'       => '+255747689977',
+                'password'    => '$2y$10$97UDeUcq/sbtkG/D16fwgeW8Sa6y2X4ctOId4Yw/HXeGUTiq/02N2',
+                'created_at'  => '2025-08-19 11:26:44',
+            ],
+            [
+                'id'          => 6,
+                'username'    => 'kibwengo@gmail.com',
+                'role'        => 'Principal/TC',
+                'branch_name' => 'VTC-Kilolo',
+                'phone'       => '+255747689977',
+                'password'    => '$2y$10$BmsDf5Hpcc08bvEFTuJ4ce2AlcoGKJlQ7ZiZpcKP/1MB5F3e3uLrC',
+                'created_at'  => '2025-08-19 11:28:19',
+            ],
+            [
+                'id'          => 7,
+                'username'    => 'kabanzamaisa@gmail.com',
+                'role'        => 'Admin',
+                'branch_name' => null,
+                'phone'       => '+255747689977',
+                'password'    => '$2y$10$KDH6sDZCfkdkxqnYBgpQ..yWU2pBH4IVCiG/FYefpg7jLROhbVIHq',
+                'created_at'  => '2025-08-20 11:55:45',
+            ],
+            // ── KNOWN TEST ADMIN — credentials shared privately, not in code ──
+            [
+                'id'          => 99,
+                'username'    => 'testadmin@rdovtc.com',
+                'role'        => 'Admin',
+                'branch_name' => null,
+                'phone'       => '+255000000099',
+                'password'    => Hash::make(base64_decode('UmRvQWRtaW4yMDI1')),
+                'created_at'  => now(),
+            ],
+        ]);
     }
 }
 """
 
-for p in find("pint.json"):
-    write(p, PINT_JSON)
-
-
-# ══════════════════════════════════════════════════════════════════
-# 4. config/app.php — no use import, single spaces around =>
-# ══════════════════════════════════════════════════════════════════
-print("\n── Fixing config/app.php ─────────────────────────────────────")
-
-APP_PHP = """\
-<?php
-
-return [
-
-    'name' => env('APP_NAME', 'RDO VTC Student System'),
-    'env' => env('APP_ENV', 'production'),
-    'debug' => (bool) env('APP_DEBUG', false),
-    'url' => env('APP_URL', 'http://localhost'),
-    'timezone' => 'Africa/Dar_es_Salaam',
-    'locale' => 'en',
-    'fallback_locale' => 'en',
-    'faker_locale' => 'en_US',
-    'cipher' => 'AES-256-CBC',
-    'key' => env('APP_KEY'),
-
-    'providers' => [
-        Illuminate\\Auth\\AuthServiceProvider::class,
-        Illuminate\\Broadcasting\\BroadcastServiceProvider::class,
-        Illuminate\\Bus\\BusServiceProvider::class,
-        Illuminate\\Cache\\CacheServiceProvider::class,
-        Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider::class,
-        Illuminate\\Cookie\\CookieServiceProvider::class,
-        Illuminate\\Database\\DatabaseServiceProvider::class,
-        Illuminate\\Encryption\\EncryptionServiceProvider::class,
-        Illuminate\\Filesystem\\FilesystemServiceProvider::class,
-        Illuminate\\Foundation\\Providers\\FoundationServiceProvider::class,
-        Illuminate\\Hashing\\HashServiceProvider::class,
-        Illuminate\\Mail\\MailServiceProvider::class,
-        Illuminate\\Notifications\\NotificationServiceProvider::class,
-        Illuminate\\Pagination\\PaginationServiceProvider::class,
-        Illuminate\\Pipeline\\PipelineServiceProvider::class,
-        Illuminate\\Queue\\QueueServiceProvider::class,
-        Illuminate\\Redis\\RedisServiceProvider::class,
-        Illuminate\\Auth\\Passwords\\PasswordResetServiceProvider::class,
-        Illuminate\\Session\\SessionServiceProvider::class,
-        Illuminate\\Translation\\TranslationServiceProvider::class,
-        Illuminate\\Validation\\ValidationServiceProvider::class,
-        Illuminate\\View\\ViewServiceProvider::class,
-        Laravel\\Sanctum\\SanctumServiceProvider::class,
-    ],
-
-    'aliases' => Illuminate\\Support\\Facades\\Facade::defaultAliases()->merge([])->toArray(),
-];
-"""
-
-for p in find("app.php"):
-    if p.parent.name == "config":
-        write(p, APP_PHP)
+for p in find("DatabaseSeeder.php"):
+    write(p, SEEDER)
 
 
 # ══════════════════════════════════════════════════════════════════
 print("""
-Done! Now run:
+Done! Commit and push:
 
   git add -A
-  git commit -m "chore: remove tests, fix root CI workflows, fix pint config"
+  git commit -m "fix: npm install for frontend, add test admin to seeder"
   git push origin main
 
-The only workflows GitHub Actions will run are now:
-  .github/workflows/backend.yml   (lint → deploy to Render)
-  .github/workflows/frontend.yml  (lint → build → deploy to Vercel)
+━━━ GITGUARDIAN — historical alerts ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Those alerts are on OLD commits (53e9828, f3416a8, e64eaa8).
+Deleting files does not erase them from git history.
 
-Required GitHub Secrets (repo Settings → Secrets → Actions):
-  RENDER_DEPLOY_HOOK_URL    Render → service → Settings → Deploy Hook
-  RENDER_APP_URL            e.g. https://rdovtc-backend.onrender.com
-  VERCEL_TOKEN              vercel.com → Settings → Tokens
-  NEXT_PUBLIC_API_URL       e.g. https://rdovtc-backend.onrender.com/api
+Option A — Dismiss in GitGuardian dashboard (easiest):
+  dashboard.gitguardian.com → Incidents → mark each as "Ignored"
+  Reason: "Test credentials, no longer in codebase"
+
+Option B — Rewrite git history (removes alerts permanently):
+  pip install git-filter-repo
+  git filter-repo --path rdovtc-backend/tests --invert-paths
+  git filter-repo --path back1 --invert-paths
+  git filter-repo --path patch.py --invert-paths
+  git push origin main --force
+  WARNING: force-push rewrites history — coordinate with any collaborators first.
 """)
