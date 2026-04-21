@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    try { await authApi.logout(); } catch (_) { /* ignore */ }
+    try { await authApi.logout(); } catch { /* ignore */ }
     localStorage.removeItem('rdovtc_token');
     localStorage.removeItem('rdovtc_user');
     setToken(null);

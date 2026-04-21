@@ -6,7 +6,11 @@ const createJestConfig = nextJest({ dir: './' });
 const config: Config = {
   coverageProvider: 'v8',
   testEnvironment:  'jsdom',
+<<<<<<< HEAD
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+=======
+  setupFilesAfterFramework: ['<rootDir>/jest.setup.ts'],
+>>>>>>> b1b9db0 (Initial commit)
 
   // Map path aliases from tsconfig
   moduleNameMapper: {

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { studentsApi, coursesApi, branchesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -29,15 +29,15 @@ export default function RegisterStudentForm({ onSuccess }: Props) {
   const [courses, setCourses]   = useState<Course[]>([]);
   const [loading, setLoading]   = useState(false);
 
+  const fetchCourses = useCallback((branchName: string) => {
+    if (!branchName) { setCourses([]); return; }
+    coursesApi.byBranch(branchName).then(r => setCourses(r.data));
+  }, []);
+
   useEffect(() => {
     if (!isPrincipal) branchesApi.list().then(r => setBranches(r.data));
     else fetchCourses(user?.branch_name ?? '');
-  }, [isPrincipal, user]);
-
-  const fetchCourses = (branchName: string) => {
-    if (!branchName) { setCourses([]); return; }
-    coursesApi.byBranch(branchName).then(r => setCourses(r.data));
-  };
+  }, [isPrincipal, user, fetchCourses]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 

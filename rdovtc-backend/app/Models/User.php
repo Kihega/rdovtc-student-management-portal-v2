@@ -10,7 +10,9 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens;
+    use HasFactory;
+    use Notifiable;
 
     protected $table = 'users';
 
@@ -32,9 +34,12 @@ class User extends Authenticatable
     ];
 
     // Roles constants for clean usage across the app
-    const ROLE_ADMIN    = 'Admin';
-    const ROLE_ED       = 'Executive director';
-    const ROLE_VET      = 'VET Coordinator';
+    const ROLE_ADMIN = 'Admin';
+
+    const ROLE_ED = 'Executive director';
+
+    const ROLE_VET = 'VET Coordinator';
+
     const ROLE_PRINCIPAL = 'Principal/TC';
 
     public function isAdmin(): bool

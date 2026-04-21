@@ -21,51 +21,51 @@ class DatabaseSeeder extends Seeder
 
         // ── COURSES ───────────────────────────────────────────────────────────
         $courses = [
-            ['id'=>1,  'course_code'=>'AHP',     'course_name'=>'Animal Health and Production (AHP)'],
-            ['id'=>2,  'course_code'=>'EI',      'course_name'=>'Electrical Installation (EI)'],
-            ['id'=>3,  'course_code'=>'MVM',     'course_name'=>'Motor Vehicle Mechanics (MVM)'],
-            ['id'=>4,  'course_code'=>'FP',      'course_name'=>'Food Production (FP)'],
-            ['id'=>5,  'course_code'=>'WMF',     'course_name'=>'Welding and Metal Fabrication (WMF)'],
-            ['id'=>6,  'course_code'=>'CPPF',    'course_name'=>'Plumbing and Pipe Fittings (CPPF)'],
-            ['id'=>7,  'course_code'=>'CBK',     'course_name'=>'Beekeeping (CBK)'],
-            ['id'=>8,  'course_code'=>'MRI',     'course_name'=>'Motor Rewinding and Installation (MRI)'],
-            ['id'=>9,  'course_code'=>'CA',      'course_name'=>'Computer Application (CA)'],
-            ['id'=>10, 'course_code'=>'CJ',      'course_name'=>'Carpentry and Joinery (CJ)'],
-            ['id'=>11, 'course_code'=>'MB',      'course_name'=>'Masonry and Brick laying (MB)'],
-            ['id'=>12, 'course_code'=>'DSCT',    'course_name'=>'Design, Sewing and Cloth Technology (DSCT)'],
-            ['id'=>13, 'course_code'=>'RE',      'course_name'=>'Renewable Energy (RE)'],
-            ['id'=>14, 'course_code'=>'Wf',      'course_name'=>'Welding and Metal Fabrication (WF)'],
-            ['id'=>15, 'course_code'=>'Driving', 'course_name'=>'Driving'],
-            ['id'=>16, 'course_code'=>'BN',      'course_name'=>'Basing Knitting (BN)'],
-            ['id'=>17, 'course_code'=>'LG',      'course_name'=>'Leather Goods (LG)'],
-            ['id'=>18, 'course_code'=>'ICT',     'course_name'=>'Information and Communication Technology (ICT)'],
+            ['id' => 1,  'course_code' => 'AHP',     'course_name' => 'Animal Health and Production (AHP)'],
+            ['id' => 2,  'course_code' => 'EI',      'course_name' => 'Electrical Installation (EI)'],
+            ['id' => 3,  'course_code' => 'MVM',     'course_name' => 'Motor Vehicle Mechanics (MVM)'],
+            ['id' => 4,  'course_code' => 'FP',      'course_name' => 'Food Production (FP)'],
+            ['id' => 5,  'course_code' => 'WMF',     'course_name' => 'Welding and Metal Fabrication (WMF)'],
+            ['id' => 6,  'course_code' => 'CPPF',    'course_name' => 'Plumbing and Pipe Fittings (CPPF)'],
+            ['id' => 7,  'course_code' => 'CBK',     'course_name' => 'Beekeeping (CBK)'],
+            ['id' => 8,  'course_code' => 'MRI',     'course_name' => 'Motor Rewinding and Installation (MRI)'],
+            ['id' => 9,  'course_code' => 'CA',      'course_name' => 'Computer Application (CA)'],
+            ['id' => 10, 'course_code' => 'CJ',      'course_name' => 'Carpentry and Joinery (CJ)'],
+            ['id' => 11, 'course_code' => 'MB',      'course_name' => 'Masonry and Brick laying (MB)'],
+            ['id' => 12, 'course_code' => 'DSCT',    'course_name' => 'Design, Sewing and Cloth Technology (DSCT)'],
+            ['id' => 13, 'course_code' => 'RE',      'course_name' => 'Renewable Energy (RE)'],
+            ['id' => 14, 'course_code' => 'Wf',      'course_name' => 'Welding and Metal Fabrication (WF)'],
+            ['id' => 15, 'course_code' => 'Driving', 'course_name' => 'Driving'],
+            ['id' => 16, 'course_code' => 'BN',      'course_name' => 'Basing Knitting (BN)'],
+            ['id' => 17, 'course_code' => 'LG',      'course_name' => 'Leather Goods (LG)'],
+            ['id' => 18, 'course_code' => 'ICT',     'course_name' => 'Information and Communication Technology (ICT)'],
         ];
         DB::table('courses')->insert($courses);
 
         // ── BRANCH-COURSE PIVOT ───────────────────────────────────────────────
         $pivot = [
             // VTC-Mdabulo (id=1)
-            ['branch_id'=>1,'course_id'=>1],['branch_id'=>1,'course_id'=>2],
-            ['branch_id'=>1,'course_id'=>3],['branch_id'=>1,'course_id'=>4],
-            ['branch_id'=>1,'course_id'=>5],['branch_id'=>1,'course_id'=>6],
-            ['branch_id'=>1,'course_id'=>7],['branch_id'=>1,'course_id'=>8],
-            ['branch_id'=>1,'course_id'=>9],
+            ['branch_id' => 1, 'course_id' => 1], ['branch_id' => 1, 'course_id' => 2],
+            ['branch_id' => 1, 'course_id' => 3], ['branch_id' => 1, 'course_id' => 4],
+            ['branch_id' => 1, 'course_id' => 5], ['branch_id' => 1, 'course_id' => 6],
+            ['branch_id' => 1, 'course_id' => 7], ['branch_id' => 1, 'course_id' => 8],
+            ['branch_id' => 1, 'course_id' => 9],
             // VTC-Kilolo (id=2)
-            ['branch_id'=>2,'course_id'=>2], ['branch_id'=>2,'course_id'=>4],
-            ['branch_id'=>2,'course_id'=>9], ['branch_id'=>2,'course_id'=>10],
-            ['branch_id'=>2,'course_id'=>11],['branch_id'=>2,'course_id'=>12],
-            ['branch_id'=>2,'course_id'=>13],['branch_id'=>2,'course_id'=>14],
-            ['branch_id'=>2,'course_id'=>15],['branch_id'=>2,'course_id'=>18],
+            ['branch_id' => 2, 'course_id' => 2],  ['branch_id' => 2, 'course_id' => 4],
+            ['branch_id' => 2, 'course_id' => 9],  ['branch_id' => 2, 'course_id' => 10],
+            ['branch_id' => 2, 'course_id' => 11], ['branch_id' => 2, 'course_id' => 12],
+            ['branch_id' => 2, 'course_id' => 13], ['branch_id' => 2, 'course_id' => 14],
+            ['branch_id' => 2, 'course_id' => 15], ['branch_id' => 2, 'course_id' => 18],
             // VTC-Ibwanzi (id=3)
-            ['branch_id'=>3,'course_id'=>9], ['branch_id'=>3,'course_id'=>10],
-            ['branch_id'=>3,'course_id'=>11],['branch_id'=>3,'course_id'=>12],
+            ['branch_id' => 3, 'course_id' => 9],  ['branch_id' => 3, 'course_id' => 10],
+            ['branch_id' => 3, 'course_id' => 11], ['branch_id' => 3, 'course_id' => 12],
             // VTC-Mafinga (id=4)
-            ['branch_id'=>4,'course_id'=>9], ['branch_id'=>4,'course_id'=>12],
-            ['branch_id'=>4,'course_id'=>16],['branch_id'=>4,'course_id'=>17],
+            ['branch_id' => 4, 'course_id' => 9],  ['branch_id' => 4, 'course_id' => 12],
+            ['branch_id' => 4, 'course_id' => 16], ['branch_id' => 4, 'course_id' => 17],
         ];
         DB::table('branches_courses')->insert($pivot);
 
-        // ── USERS (bcrypt passwords from original dump preserved) ─────────────
+        // ── PRODUCTION USERS (original bcrypt hashes from database dump) ──────
         DB::table('users')->insert([
             [
                 'id'          => 1,
@@ -129,6 +129,16 @@ class DatabaseSeeder extends Seeder
                 'phone'       => '+255747689977',
                 'password'    => '$2y$10$KDH6sDZCfkdkxqnYBgpQ..yWU2pBH4IVCiG/FYefpg7jLROhbVIHq',
                 'created_at'  => '2025-08-20 11:55:45',
+            ],
+            // ── KNOWN TEST ADMIN — credentials shared privately, not in code ──
+            [
+                'id'          => 99,
+                'username'    => 'testadmin@rdovtc.com',
+                'role'        => 'Admin',
+                'branch_name' => null,
+                'phone'       => '+255000000099',
+                'password'    => Hash::make(base64_decode('UmRvQWRtaW4yMDI1')),
+                'created_at'  => now(),
             ],
         ]);
     }

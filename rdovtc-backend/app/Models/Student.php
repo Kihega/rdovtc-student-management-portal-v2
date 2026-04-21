@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 class Student extends Model
 {
     use HasFactory;
+
     protected $table = 'student';
 
     public $timestamps = false; // table uses created_at only (no updated_at)
+
     const CREATED_AT = 'created_at';
 
     protected $fillable = [
@@ -44,9 +46,9 @@ class Student extends Model
     ];
 
     protected $casts = [
-        'date_of_birth'     => 'date',
+        'date_of_birth' => 'date',
         'registration_date' => 'date',
-        'created_at'        => 'datetime',
+        'created_at' => 'datetime',
     ];
 
     protected static function newFactory(): StudentFactory

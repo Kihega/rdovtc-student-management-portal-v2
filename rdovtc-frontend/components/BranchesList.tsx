@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { branchesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -12,15 +12,15 @@ export default function BranchesList({ adminMode, onChanged }: Props) {
   const [confirm, setConfirm]   = useState<Branch | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     branchesApi.list()
       .then(r => setBranches(r.data))
       .catch(() => toast.error('Failed to load branches.'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const doDelete = async () => {
     if (!confirm) return;

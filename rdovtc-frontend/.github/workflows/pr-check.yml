@@ -1,14 +1,18 @@
+<<<<<<< HEAD
 # ─────────────────────────────────────────────────────────────────────────────
 # PR Quality Gate
 # All jobs must pass before a PR can be merged into main or develop.
 # Configure "Required status checks" in GitHub → Settings → Branches to enforce.
 # ─────────────────────────────────────────────────────────────────────────────
+=======
+>>>>>>> b1b9db0 (Initial commit)
 name: PR Quality Gate
 
 on:
   pull_request:
     branches: [main, develop]
 
+<<<<<<< HEAD
 # Cancel any in-progress run for the same PR branch (saves CI minutes)
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
@@ -22,6 +26,12 @@ jobs:
     defaults:
       run:
         working-directory: rdovtc-frontend
+=======
+jobs:
+  quality:
+    name: 🔍 PR Quality Check
+    runs-on: ubuntu-latest
+>>>>>>> b1b9db0 (Initial commit)
 
     steps:
       - uses: actions/checkout@v4
@@ -30,12 +40,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+<<<<<<< HEAD
           cache: npm
           cache-dependency-path: rdovtc-frontend/package-lock.json
+=======
+          cache: 'npm'
+>>>>>>> b1b9db0 (Initial commit)
 
       - name: Install dependencies
         run: npm ci
 
+<<<<<<< HEAD
       - name: ESLint
         run: npm run lint
 
@@ -65,10 +80,20 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
+=======
+      - name: ESLint check
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npm run type-check
+
+      - name: Run tests
+>>>>>>> b1b9db0 (Initial commit)
         run: npm run test:ci
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080/api
 
+<<<<<<< HEAD
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -116,6 +141,26 @@ jobs:
           echo "No hardcoded API URLs found"
 
       - name: Build (smoke test)
+=======
+      - name: Check for console.log statements
+        run: |
+          if grep -rn "console\.log(" app/ components/ lib/ --include="*.ts" --include="*.tsx" 2>/dev/null; then
+            echo "❌ console.log() found — remove before merging (use console.warn/error instead)"
+            exit 1
+          fi
+          echo "✅ No console.log statements found"
+
+      - name: Check for hardcoded API URLs
+        run: |
+          if grep -rn "onrender\.com\|localhost:8080" app/ components/ lib/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v ".env"; then
+            echo "⚠️  Hardcoded API URL found — use NEXT_PUBLIC_API_URL env var instead"
+            exit 1
+          fi
+          echo "✅ No hardcoded API URLs found"
+
+      - name: Check bundle size (build smoke test)
+>>>>>>> b1b9db0 (Initial commit)
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: https://rdovtc-backend.onrender.com/api

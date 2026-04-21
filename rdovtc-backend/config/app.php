@@ -1,19 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Facade;
-
 return [
 
-    'name'     => env('APP_NAME', 'RDO VTC Student System'),
-    'env'      => env('APP_ENV', 'production'),
-    'debug'    => (bool) env('APP_DEBUG', false),
-    'url'      => env('APP_URL', 'http://localhost'),
+    'name' => env('APP_NAME', 'RDO VTC Student System'),
+    'env' => env('APP_ENV', 'production'),
+    'debug' => (bool) env('APP_DEBUG', false),
+    'url' => env('APP_URL', 'http://localhost'),
     'timezone' => 'Africa/Dar_es_Salaam',
-    'locale'   => 'en',
+    'locale' => 'en',
     'fallback_locale' => 'en',
-    'faker_locale'    => 'en_US',
-    'cipher'   => 'AES-256-CBC',
-    'key'      => env('APP_KEY'),
+    'faker_locale' => 'en_US',
+    'cipher' => 'AES-256-CBC',
+    'key' => env('APP_KEY'),
 
     'providers' => [
         Illuminate\Auth\AuthServiceProvider::class,
@@ -41,5 +39,5 @@ return [
         Laravel\Sanctum\SanctumServiceProvider::class,
     ],
 
-    'aliases' => Facade::defaultAliases()->merge([])->toArray(),
+    'aliases' => Illuminate\Support\Facades\Facade::defaultAliases()->merge([])->toArray(),
 ];
