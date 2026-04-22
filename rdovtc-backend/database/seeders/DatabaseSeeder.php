@@ -9,7 +9,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ── BRANCHES ──────────────────────────────────────────────────────────
+        // insertOrIgnore = safe to re-run (won't duplicate on re-deploy)
+
         DB::table('branches')->insertOrIgnore([
             ['id' => 1, 'branch_name' => 'VTC-Mdabulo'],
             ['id' => 2, 'branch_name' => 'VTC-Kilolo'],
@@ -17,7 +18,6 @@ class DatabaseSeeder extends Seeder
             ['id' => 4, 'branch_name' => 'VTC-Mafinga'],
         ]);
 
-        // ── COURSES ───────────────────────────────────────────────────────────
         DB::table('courses')->insertOrIgnore([
             ['id' => 1,  'course_code' => 'AHP',     'course_name' => 'Animal Health and Production (AHP)'],
             ['id' => 2,  'course_code' => 'EI',       'course_name' => 'Electrical Installation (EI)'],
@@ -39,7 +39,6 @@ class DatabaseSeeder extends Seeder
             ['id' => 18, 'course_code' => 'ICT',      'course_name' => 'Information and Communication Technology (ICT)'],
         ]);
 
-        // ── BRANCH-COURSE PIVOT ───────────────────────────────────────────────
         DB::table('branches_courses')->insertOrIgnore([
             ['branch_id' => 1, 'course_id' => 1], ['branch_id' => 1, 'course_id' => 2],
             ['branch_id' => 1, 'course_id' => 3], ['branch_id' => 1, 'course_id' => 4],
@@ -57,17 +56,8 @@ class DatabaseSeeder extends Seeder
             ['branch_id' => 4, 'course_id' => 16], ['branch_id' => 4, 'course_id' => 17],
         ]);
 
-        // ── USERS ─────────────────────────────────────────────────────────────
-        // Passwords from the original MySQL dump (bcrypt, $2y$10$).
-        // testadmin hash is pre-computed offline — does NOT use Hash::make() at
-        // runtime, so it always works even if extensions load late in Docker.
-        //
-        // To generate a new hash for any password:
-        //   python3 -c "
-        //     import crypt, re, warnings; warnings.filterwarnings('ignore')
-        //     s = re.sub(r'(\$2b\$)\d+(\$)', r'\g<1>10\g<2>', crypt.mksalt(crypt.METHOD_BLOWFISH))
-        //     print(crypt.crypt('YOURPASSWORD', s).replace('\$2b\$', '\$2y\$'))
-        //   "
+        // All password hashes are $2y$10$ bcrypt (PHP/Laravel standard).
+        // testadmin hash is pre-computed offline — no runtime Hash::make needed.
         DB::table('users')->insertOrIgnore([
             [
                 'username'    => 'kihega2025@gmail.com',
@@ -125,8 +115,7 @@ class DatabaseSeeder extends Seeder
                 'password'    => '$2y$10$KDH6sDZCfkdkxqnYBgpQ..yWU2pBH4IVCiG/FYefpg7jLROhbVIHq',
                 'created_at'  => '2025-08-20 11:55:45',
             ],
-            // ── TEST ADMIN (password: RdoAdmin2025) ───────────────────────────
-            // Hash pre-computed — does not require Hash::make() at runtime.
+            // TEST ADMIN — password: RdoAdmin2025
             [
                 'username'    => 'testadmin@rdovtc.com',
                 'role'        => 'Admin',

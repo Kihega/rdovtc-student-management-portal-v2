@@ -22,7 +22,6 @@ FROM php:8.2-fpm-alpine
 
 RUN apk add --no-cache \
     nginx supervisor libpng libzip oniguruma postgresql-libs \
-    netcat-openbsd
 
 # Copy compiled PHP extensions from builder (no recompile needed)
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
