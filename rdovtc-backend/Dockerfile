@@ -17,11 +17,12 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Stage 2: Runtime — Nginx + PHP-FPM
+# No netcat needed — PHP PDO handles DB readiness check in start.sh
 # ──────────────────────────────────────────────────────────────────────────────
 FROM php:8.2-fpm-alpine
 
 RUN apk add --no-cache \
-    nginx supervisor libpng libzip oniguruma postgresql-libs \
+    nginx supervisor libpng libzip oniguruma postgresql-libs
 
 # Copy compiled PHP extensions from builder (no recompile needed)
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
@@ -44,5 +45,5 @@ RUN chmod +x /start.sh && \
 
 EXPOSE 8080
 
-# start.sh runs: migrate → cache → supervisord (nginx + php-fpm)
+# start.sh: wait for DB (PHP PDO) -> migrate -> seed -> cache -> supervisord
 CMD ["/start.sh"]
