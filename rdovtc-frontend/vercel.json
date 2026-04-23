@@ -4,11 +4,11 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://rdovtc-backend.onrender.com/api"
+    "NEXT_PUBLIC_API_URL": "https://rdovtc-student-management-portal-v2.onrender.com/api"
   },
   "build": {
     "env": {
-      "NEXT_PUBLIC_API_URL": "https://rdovtc-backend.onrender.com/api"
+      "NEXT_PUBLIC_API_URL": "https://rdovtc-student-management-portal-v2.onrender.com/api"
     }
   }
 }
