@@ -6,13 +6,11 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    /**
-     * Login — returns a Sanctum token + user info.
-     */
+    /** Login — returns a JWT token + user info */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -20,68 +18,72 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('username', $request->username)->first();
+        $credentials = [
+            'username' => $request->username,
+            'password' => $request->password,
+        ];
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'username' => ['Invalid credentials. Please check your username and password.'],
-            ]);
+        if (! $token = auth('api')->attempt($credentials)) {
+            return response()->json([
+                'message' => 'Invalid credentials. Please check your username and password.',
+            ], 401);
         }
 
-        // Revoke old tokens to enforce single-session security
-        $user->tokens()->delete();
-
-        $token = $user->createToken('api-token')->plainTextToken;
+        $user = auth('api')->user();
 
         return response()->json([
             'token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => config('jwt.ttl') * 60,
             'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'role' => $user->role,
+                'id'          => $user->id,
+                'username'    => $user->username,
+                'role'        => $user->role,
                 'branch_name' => $user->branch_name,
-                'phone' => $user->phone,
+                'phone'       => $user->phone,
             ],
         ]);
     }
 
-    /**
-     * Return the currently authenticated user.
-     */
-    public function me(Request $request): JsonResponse
+    /** Return currently authenticated user */
+    public function me(): JsonResponse
     {
-        $user = $request->user();
+        $user = auth('api')->user();
 
         return response()->json([
-            'id' => $user->id,
-            'username' => $user->username,
-            'role' => $user->role,
+            'id'          => $user->id,
+            'username'    => $user->username,
+            'role'        => $user->role,
             'branch_name' => $user->branch_name,
-            'phone' => $user->phone,
+            'phone'       => $user->phone,
         ]);
     }
 
-    /**
-     * Logout — revoke the current token.
-     */
-    public function logout(Request $request): JsonResponse
+    /** Logout — invalidate the JWT */
+    public function logout(): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        auth('api')->logout();
 
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
-    /**
-     * Update password (authenticated user changes their own password).
-     */
+    /** Refresh JWT token */
+    public function refresh(): JsonResponse
+    {
+        $token = auth('api')->refresh();
+
+        return response()->json(['token' => $token, 'token_type' => 'bearer']);
+    }
+
+    /** Change password (authenticated — user knows current password) */
     public function updatePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:6|confirmed',
+            'current_password'          => 'required|string',
+            'new_password'              => 'required|string|min:6|confirmed',
         ]);
 
-        $user = $request->user();
+        $user = auth('api')->user();
 
         if (! Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Current password is incorrect.'], 422);
@@ -92,14 +94,11 @@ class AuthController extends Controller
         return response()->json(['message' => 'Password updated successfully.']);
     }
 
-    /**
-     * Change password via old-password verification (no auth token required).
-     * Used from the login page "Forgot Password" flow.
-     */
+    /** Change password via old-password (no token — used from login page) */
     public function changePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'username' => 'required|string',
+            'username'     => 'required|string',
             'old_password' => 'required|string',
             'new_password' => 'required|string|min:6|confirmed',
         ]);

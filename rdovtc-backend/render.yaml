@@ -1,19 +1,11 @@
-# render.yaml — Infrastructure-as-code for Render.com
-# Place this file in the ROOT of the rdovtc-backend repo.
-# Render reads it automatically when you connect the repo.
-
 services:
   - type: web
-    name: rdovtc-backend
+    name: rdovtc-student-management-portal-v2
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    region: oregon           # must match the region of rdovtc-db below
+    region: oregon
     healthCheckPath: /health
-
-    # Render waits this many seconds before declaring the service unhealthy.
-    # Set high enough to cover: Docker build + DB wait + migrate + seed (~3min).
-    initialDeployHook: "echo deploy started"
 
     envVars:
       - key: APP_ENV
@@ -23,10 +15,8 @@ services:
       - key: APP_KEY
         generateValue: true
       - key: APP_URL
-        value: https://rdovtc-backend.onrender.com   # update to your actual URL
+        value: https://rdovtc-student-management-portal-v2.onrender.com
 
-      # Render auto-injects DATABASE_URL from the linked database below.
-      # The pgsql driver reads it automatically via config/database.php.
       - key: DATABASE_URL
         fromDatabase:
           name: rdovtc-db
@@ -37,28 +27,26 @@ services:
       - key: DB_SSLMODE
         value: require
 
+      # JWT Secret — generated once, stays stable across deploys
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_TTL
+        value: 1440
+
       - key: FRONTEND_URL
-        value: https://rdovtc-frontend.vercel.app   # update to your Vercel URL
+        value: https://rdovtc-student-management-portal-2.vercel.app
 
       - key: LOG_CHANNEL
         value: stderr
+      # FILE-based cache — no database cache table required
       - key: CACHE_STORE
-        value: database
+        value: file
       - key: SESSION_DRIVER
-        value: cookie
+        value: file
 
-# ── Free PostgreSQL ────────────────────────────────────────────────────────────
-# IMPORTANT: region must match the web service region above (both = oregon).
-# If they are in different regions, DATABASE_URL internal hostname won't resolve.
-#
-# Free tier expires every 30 days. When Render emails you:
-#   1. Render dashboard -> delete rdovtc-db
-#   2. New -> PostgreSQL (same settings) -> Free
-#   3. Copy new Internal Database URL
-#   4. Web service -> Environment -> update DATABASE_URL -> Save (auto-redeploys)
 databases:
   - name: rdovtc-db
     plan: free
-    region: oregon           # MUST match web service region
+    region: oregon
     databaseName: rdovtc
     user: rdovtc_user

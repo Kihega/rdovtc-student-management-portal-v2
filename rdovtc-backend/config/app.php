@@ -1,18 +1,17 @@
 <?php
 
 return [
-
-    'name' => env('APP_NAME', 'RDO VTC Student System'),
-    'env' => env('APP_ENV', 'production'),
-    'debug' => (bool) env('APP_DEBUG', false),
-    'url' => env('APP_URL', 'http://localhost'),
-    'timezone' => 'Africa/Dar_es_Salaam',
-    'locale' => 'en',
+    'name'     => env('APP_NAME', 'RDO VTC Backend'),
+    'env'      => env('APP_ENV', 'production'),
+    'debug'    => (bool) env('APP_DEBUG', false),
+    'url'      => env('APP_URL', 'https://rdovtc-student-management-portal-v2.onrender.com'),
+    'timezone' => 'UTC',
+    'locale'   => 'en',
     'fallback_locale' => 'en',
-    'faker_locale' => 'en_US',
-    'cipher' => 'AES-256-CBC',
-    'key' => env('APP_KEY'),
-
+    'faker_locale'    => 'en_US',
+    'cipher'   => 'AES-256-CBC',
+    'key'      => env('APP_KEY'),
+    'previous_keys' => array_filter(explode(',', env('APP_PREVIOUS_KEYS', ''))),
     'providers' => [
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
@@ -36,8 +35,10 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
-        Laravel\Sanctum\SanctumServiceProvider::class,
+        Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
     ],
-
-    'aliases' => Illuminate\Support\Facades\Facade::defaultAliases()->merge([])->toArray(),
+    'aliases' => [
+        'JWTAuth'  => Tymon\JWTAuth\Facades\JWTAuth::class,
+        'JWTFactory' => Tymon\JWTAuth\Facades\JWTFactory::class,
+    ],
 ];

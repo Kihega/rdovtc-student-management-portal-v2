@@ -1,10 +1,9 @@
 'use client';
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from './api';
 
-export interface User {
+interface User {
   id: number;
   username: string;
   role: string;
@@ -17,64 +16,56 @@ interface AuthCtx {
   token: string | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthCtx | null>(null);
+const Ctx = createContext<AuthCtx>({} as AuthCtx);
+export const useAuth = () => useContext(Ctx);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser]   = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const router  = useRouter();
+  const [user,    setUser]    = useState<User | null>(null);
+  const [token,   setToken]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  // Restore session from localStorage on mount
+  // Rehydrate from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('rdovtc_token');
-    const storedUser  = localStorage.getItem('rdovtc_user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    const t = localStorage.getItem('jwt_token');
+    const u = localStorage.getItem('jwt_user');
+    if (t && u) {
+      setToken(t);
+      setUser(JSON.parse(u));
     }
     setLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
-    const { data } = await authApi.login(username, password);
-    localStorage.setItem('rdovtc_token', data.token);
-    localStorage.setItem('rdovtc_user',  JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
+  const login = useCallback(async (username: string, password: string) => {
+    const res  = await authApi.login({ username, password });
+    const { token: jwt, user: u } = res.data;
+    localStorage.setItem('jwt_token', jwt);
+    localStorage.setItem('jwt_user',  JSON.stringify(u));
+    setToken(jwt);
+    setUser(u);
 
     // Role-based redirect
-    const role = data.user.role.toLowerCase();
-    if (role === 'admin') {
-      router.push('/dashboard/admin');
-    } else if (role === 'executive director' || role === 'vet coordinator') {
-      router.push('/dashboard/viewer');
-    } else if (role === 'principal/tc') {
-      router.push('/dashboard/principal');
-    }
-  };
+    const role = u.role;
+    if (role === 'Admin')              router.push('/dashboard/admin');
+    else if (role === 'Principal/TC')  router.push('/dashboard/principal');
+    else                               router.push('/dashboard/viewer');
+  }, [router]);
 
-  const logout = async () => {
-    try { await authApi.logout(); } catch { /* ignore */ }
-    localStorage.removeItem('rdovtc_token');
-    localStorage.removeItem('rdovtc_user');
+  const logout = useCallback(() => {
+    authApi.logout().catch(() => {});
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('jwt_user');
     setToken(null);
     setUser(null);
     router.push('/');
-  };
+  }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <Ctx.Provider value={{ user, token, loading, login, logout }}>
       {children}
-    </AuthContext.Provider>
+    </Ctx.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
-  return ctx;
 }

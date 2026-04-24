@@ -11,16 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Sanctum stateful middleware (for cookie-based sessions if needed)
-        $middleware->statefulApi();
-
-        // Register our custom role middleware alias
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Return JSON for all API errors
-        $exceptions->shouldRenderJsonWhen(fn ($request) => $request->is('api/*'));
+        $exceptions->shouldRenderJsonWhen(fn ($request) => $request->is('api/*') || $request->expectsJson());
     })
     ->create();

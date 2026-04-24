@@ -1,81 +1,64 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-  withCredentials: false,
+const API = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://rdovtc-student-management-portal-v2.onrender.com/api',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
 });
 
-// Attach token from localStorage on every request
-api.interceptors.request.use((config) => {
+// Attach JWT token from localStorage to every request
+API.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('rdovtc_token');
-    if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    const token = localStorage.getItem('jwt_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// On 401 → clear session and redirect to login
-api.interceptors.response.use(
-  (res) => res,
+// On 401, clear token and redirect to login
+API.interceptors.response.use(
+  (r) => r,
   (err) => {
     if (err.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('rdovtc_token');
-      localStorage.removeItem('rdovtc_user');
+      localStorage.removeItem('jwt_token');
+      localStorage.removeItem('jwt_user');
       window.location.href = '/';
     }
     return Promise.reject(err);
   }
 );
 
-export default api;
-
-// ── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
-  login: (username: string, password: string) =>
-    api.post('/auth/login', { username, password }),
-  logout: () => api.post('/auth/logout'),
-  me: () => api.get('/auth/me'),
-  changePassword: (data: {
-    username: string; old_password: string;
-    new_password: string; new_password_confirmation: string;
-  }) => api.post('/auth/change-password', data),
-  updatePassword: (data: {
-    current_password: string;
-    new_password: string;
-    new_password_confirmation: string;
-  }) => api.put('/auth/password', data),
+  login:          (data: { username: string; password: string }) => API.post('/auth/login', data),
+  logout:         () => API.post('/auth/logout'),
+  me:             () => API.get('/auth/me'),
+  refresh:        () => API.post('/auth/refresh'),
+  updatePassword: (data: object) => API.put('/auth/password', data),
+  changePassword: (data: object) => API.post('/auth/change-password', data),
 };
 
-// ── Students ─────────────────────────────────────────────────────────────────
 export const studentsApi = {
-  list: (params?: Record<string, string>) => api.get('/students', { params }),
-  get: (id: number) => api.get(`/students/${id}`),
-  create: (data: Record<string, unknown>) => api.post('/students', data),
-  delete: (id: number) => api.delete(`/students/${id}`),
+  list:    (params?: object) => API.get('/students', { params }),
+  get:     (id: number)      => API.get(`/students/${id}`),
+  create:  (data: object)    => API.post('/students', data),
+  delete:  (id: number)      => API.delete(`/students/${id}`),
 };
 
-// ── Branches ─────────────────────────────────────────────────────────────────
 export const branchesApi = {
-  list: () => api.get('/branches'),
-  get: (id: number) => api.get(`/branches/${id}`),
-  create: (data: { branch_name: string; course_ids?: number[] }) =>
-    api.post('/branches', data),
-  delete: (id: number) => api.delete(`/branches/${id}`),
+  list:   ()          => API.get('/branches'),
+  get:    (id:number) => API.get(`/branches/${id}`),
+  create: (data:object)=> API.post('/branches', data),
+  delete: (id:number) => API.delete(`/branches/${id}`),
 };
 
-// ── Courses ──────────────────────────────────────────────────────────────────
 export const coursesApi = {
-  list: () => api.get('/courses'),
-  byBranch: (branch_name: string) =>
-    api.get('/courses/by-branch', { params: { branch_name } }),
+  list:     ()             => API.get('/courses'),
+  byBranch: (branch:string)=> API.get('/courses/by-branch', { params: { branch_name: branch } }),
 };
 
-// ── Users ────────────────────────────────────────────────────────────────────
 export const usersApi = {
-  list: () => api.get('/users'),
-  create: (data: Record<string, unknown>) => api.post('/users', data),
-  delete: (id: number) => api.delete(`/users/${id}`),
+  list:   ()           => API.get('/users'),
+  create: (data:object)=> API.post('/users', data),
+  delete: (id:number)  => API.delete(`/users/${id}`),
 };
+
+export default API;

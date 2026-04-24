@@ -2,33 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Branch;
-use App\Models\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CourseController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(Course::orderBy('course_name')->get());
+        return response()->json(DB::table('courses')->orderBy('course_name')->get());
     }
 
-    /**
-     * Get courses for a specific branch — used by the student registration form.
-     * Query param: branch_name
-     */
     public function byBranch(Request $request): JsonResponse
     {
-        $request->validate(['branch_name' => 'required|string']);
+        $branchName = $request->query('branch_name', '');
 
-        $branch = Branch::where('branch_name', $request->branch_name)->first();
-
-        if (! $branch) {
-            return response()->json([], 200);
+        if (!$branchName) {
+            return response()->json([]);
         }
 
-        $courses = $branch->courses()->orderBy('course_name')->get(['courses.id', 'course_code', 'course_name']);
+        $branch = DB::table('branches')->where('branch_name', $branchName)->first();
+        if (!$branch) return response()->json([]);
+
+        $courses = DB::table('courses')
+            ->join('branches_courses', 'courses.id', '=', 'branches_courses.course_id')
+            ->where('branches_courses.branch_id', $branch->id)
+            ->select('courses.*')
+            ->orderBy('courses.course_name')
+            ->get();
 
         return response()->json($courses);
     }

@@ -8,13 +8,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     * Usage in routes: middleware('role:Admin,Principal/TC')
-     */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        $user = $request->user();
+        $user = auth('api')->user();
 
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
