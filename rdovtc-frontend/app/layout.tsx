@@ -4,7 +4,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: "RDO VTC's Student Record Management",
+  title: "RDO VTC Student Record Management",
   description: 'Student Record Management System for RDO Vocational Training Centres',
 };
 

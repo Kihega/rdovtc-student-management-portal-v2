@@ -105,7 +105,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="app-footer">© 2025 RDO-VTC's — All Rights Reserved</div>
+      <div className="app-footer">© 2025 RDO-VTC&apos;s — All Rights Reserved</div>
     </div>
   );
 }
