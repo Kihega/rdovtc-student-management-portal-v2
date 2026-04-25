@@ -25,7 +25,14 @@ COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 WORKDIR /var/www/html
 COPY --from=builder /app /var/www/html
 
-RUN mkdir -p resources/views storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+# Create ALL required directories upfront
+RUN mkdir -p \
+    resources/views \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 

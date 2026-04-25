@@ -6,11 +6,12 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
-    /** Login — returns a JWT token + user info */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -18,24 +19,32 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $credentials = [
-            'username' => $request->username,
-            'password' => $request->password,
-        ];
-
-        if (! $token = auth('api')->attempt($credentials)) {
+        try {
+            $token = auth('api')->attempt([
+                'username' => $request->username,
+                'password' => $request->password,
+            ]);
+        } catch (JWTException $e) {
+            Log::error('JWT login error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Invalid credentials. Please check your username and password.',
+                'message' => 'Authentication service error. JWT_SECRET may not be set.',
+                'hint'    => 'Set JWT_SECRET in Render Dashboard → Environment Variables',
+            ], 500);
+        }
+
+        if (! $token) {
+            return response()->json([
+                'message' => 'Invalid credentials. Please check your email and password.',
             ], 401);
         }
 
         $user = auth('api')->user();
 
         return response()->json([
-            'token' => $token,
+            'token'      => $token,
             'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60,
-            'user' => [
+            'expires_in' => config('jwt.ttl', 1440) * 60,
+            'user'       => [
                 'id'          => $user->id,
                 'username'    => $user->username,
                 'role'        => $user->role,
@@ -45,11 +54,9 @@ class AuthController extends Controller
         ]);
     }
 
-    /** Return currently authenticated user */
     public function me(): JsonResponse
     {
         $user = auth('api')->user();
-
         return response()->json([
             'id'          => $user->id,
             'username'    => $user->username,
@@ -59,28 +66,27 @@ class AuthController extends Controller
         ]);
     }
 
-    /** Logout — invalidate the JWT */
     public function logout(): JsonResponse
     {
-        auth('api')->logout();
-
+        try { auth('api')->logout(); } catch (\Exception $e) {}
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
-    /** Refresh JWT token */
     public function refresh(): JsonResponse
     {
-        $token = auth('api')->refresh();
-
-        return response()->json(['token' => $token, 'token_type' => 'bearer']);
+        try {
+            $token = auth('api')->refresh();
+            return response()->json(['token' => $token, 'token_type' => 'bearer']);
+        } catch (JWTException $e) {
+            return response()->json(['message' => 'Token refresh failed.'], 401);
+        }
     }
 
-    /** Change password (authenticated — user knows current password) */
     public function updatePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'current_password'          => 'required|string',
-            'new_password'              => 'required|string|min:6|confirmed',
+            'current_password'              => 'required|string',
+            'new_password'                  => 'required|string|min:6|confirmed',
         ]);
 
         $user = auth('api')->user();
@@ -94,7 +100,6 @@ class AuthController extends Controller
         return response()->json(['message' => 'Password updated successfully.']);
     }
 
-    /** Change password via old-password (no token — used from login page) */
     public function changePassword(Request $request): JsonResponse
     {
         $request->validate([
@@ -106,7 +111,7 @@ class AuthController extends Controller
         $user = User::where('username', $request->username)->first();
 
         if (! $user || ! Hash::check($request->old_password, $user->password)) {
-            return response()->json(['message' => 'Invalid username or old password.'], 422);
+            return response()->json(['message' => 'Invalid username or password.'], 422);
         }
 
         $user->update(['password' => Hash::make($request->new_password)]);
