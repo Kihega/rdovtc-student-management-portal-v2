@@ -16,20 +16,19 @@ if [ -n "$missing" ]; then
     exit 1
 fi
 
-echo "OK: ENV vars present (JWT_SECRET length: ${#JWT_SECRET})"
+echo "OK: ENV check passed (JWT_SECRET is ${#JWT_SECRET} chars)"
 
 # ── Storage dirs ──────────────────────────────────────────────────────────────
 mkdir -p storage/framework/cache/data storage/framework/sessions \
          storage/framework/views storage/logs bootstrap/cache
 chmod -R 775 storage bootstrap/cache 2>/dev/null || true
 
-# ── Wait for DB ───────────────────────────────────────────────────────────────
+# ── Wait for PostgreSQL ───────────────────────────────────────────────────────
 echo "Waiting for PostgreSQL..."
 _attempts=0; _max=40
 
 until php -r "
-    \$url = getenv('DATABASE_URL');
-    \$url   = preg_replace('#^postgres://#','pgsql://',\$url);
+    \$url   = preg_replace('#^postgres://#','pgsql://',getenv('DATABASE_URL'));
     \$parts = parse_url(\$url);
     \$dsn   = sprintf('pgsql:host=%s;port=%s;dbname=%s;sslmode=require',
         \$parts['host'],\$parts['port']??5432,ltrim(\$parts['path'],'/'));
@@ -37,17 +36,17 @@ until php -r "
     catch(Exception \$e){ exit(1); }
 " 2>/dev/null; do
     _attempts=$((_attempts+1))
-    [ "$_attempts" -ge "$_max" ] && echo "ERROR: DB not ready" && exit 1
+    [ "$_attempts" -ge "$_max" ] && echo "ERROR: DB not ready after $((_max*5))s" && exit 1
     echo "  DB not ready — attempt ${_attempts}/${_max}, retrying in 5s..."
     sleep 5
 done
 echo "OK: PostgreSQL ready"
 
-# ── CRITICAL: Clear ALL cached config first (stale JWT_SECRET etc) ────────────
+# ── Clear ALL stale cache (removes any old config with wrong JWT_SECRET) ───────
 echo "Clearing stale cache..."
-php artisan config:clear  2>/dev/null || true
-php artisan route:clear   2>/dev/null || true
-php artisan view:clear    2>/dev/null || true
+php artisan config:clear 2>/dev/null || true
+php artisan route:clear  2>/dev/null || true
+php artisan view:clear   2>/dev/null || true
 echo "OK: Stale cache cleared"
 
 # ── Migrations ────────────────────────────────────────────────────────────────
@@ -62,32 +61,17 @@ echo "OK: Migrations done"
 # ── Seed fresh test users ─────────────────────────────────────────────────────
 echo "Seeding test users..."
 php artisan db:seed --force --no-interaction
-echo "OK: Seeded"
-echo "   admin@rdovtc.com     / Admin@2025"
-echo "   director@rdovtc.com  / Director@2025"
-echo "   vet@rdovtc.com       / Vet@2025"
-echo "   principal@rdovtc.com / Principal@2025  (VTC-Mdabulo)"
+echo "OK: Seeded — login with:"
+echo "   admin@rdovtc.com     / Admin@2025      (Admin)"
+echo "   director@rdovtc.com  / Director@2025   (Executive director)"
+echo "   vet@rdovtc.com       / Vet@2025         (VET Coordinator)"
+echo "   principal@rdovtc.com / Principal@2025   (Principal/TC)"
 
-# ── Rebuild cache fresh (picks up current JWT_SECRET from env) ────────────────
+# ── Rebuild cache fresh ───────────────────────────────────────────────────────
 echo "Rebuilding cache..."
 php artisan config:cache
 php artisan route:cache
 echo "OK: Cache warm"
-
-# ── Verify JWT config loaded correctly ────────────────────────────────────────
-JWT_LEN=$(php -r "
-    require __DIR__.'/bootstrap/app.php';
-    \$app = app();
-    \$app->make('config');
-    echo strlen(config('jwt.secret'));
-" 2>/dev/null || echo "0")
-echo "JWT secret length in cached config: ${JWT_LEN} chars"
-if [ "$JWT_LEN" -lt "10" ] 2>/dev/null; then
-    echo "WARNING: JWT secret appears empty in config cache!"
-    echo "  JWT_SECRET env = ${#JWT_SECRET} chars"
-    echo "  Forcing config:clear and rebuilding without cache..."
-    php artisan config:clear
-fi
 
 echo "Starting Nginx + PHP-FPM on port 8080..."
 exec /usr/bin/supervisord -c /etc/supervisord.conf
