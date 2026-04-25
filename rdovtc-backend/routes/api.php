@@ -58,3 +58,22 @@ Route::middleware('auth:api')->group(function () {
     // Courses
     Route::get('/courses', [CourseController::class, 'index']);
 });
+
+// ── Diagnostic ping (no auth needed) ─────────────────────────────────────────
+Route::get('/ping', function () {
+    $jwtSecret = config('jwt.secret');
+    $jwtOk     = ! empty($jwtSecret);
+    $cacheOk   = true;
+    try { cache()->put('ping_test', true, 5); $cacheOk = cache()->get('ping_test') === true; }
+    catch (\Throwable $e) { $cacheOk = false; }
+
+    return response()->json([
+        'status'       => 'ok',
+        'jwt_secret'   => $jwtOk ? 'set (' . strlen($jwtSecret) . ' chars)' : 'MISSING',
+        'cache_store'  => config('cache.default'),
+        'cache_works'  => $cacheOk,
+        'app_env'      => config('app.env'),
+        'php_version'  => PHP_VERSION,
+        'time'         => now()->toIso8601String(),
+    ]);
+});

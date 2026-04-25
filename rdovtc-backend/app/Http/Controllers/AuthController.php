@@ -7,8 +7,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
@@ -20,38 +18,50 @@ class AuthController extends Controller
         ]);
 
         try {
-            $token = auth('api')->attempt([
-                'username' => $request->username,
+            $credentials = [
+                'username' => trim($request->username),
                 'password' => $request->password,
-            ]);
-        } catch (JWTException $e) {
-            Log::error('JWT login error: ' . $e->getMessage());
+            ];
+
+            $token = auth('api')->attempt($credentials);
+
+            if (! $token) {
+                return response()->json([
+                    'message' => 'Invalid credentials. Please check your email and password.',
+                ], 401);
+            }
+
+            $user = auth('api')->user();
+
             return response()->json([
-                'message' => 'Authentication service error. JWT_SECRET may not be set.',
-                'hint'    => 'Set JWT_SECRET in Render Dashboard → Environment Variables',
+                'token'      => $token,
+                'token_type' => 'bearer',
+                'expires_in' => config('jwt.ttl', 1440) * 60,
+                'user'       => [
+                    'id'          => $user->id,
+                    'username'    => $user->username,
+                    'role'        => $user->role,
+                    'branch_name' => $user->branch_name,
+                    'phone'       => $user->phone,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            // Log the full error so it appears in Render logs
+            Log::error('Login failed', [
+                'error'   => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'class'   => get_class($e),
+            ]);
+
+            // Return the real error message so it shows in the frontend toast
+            // (remove class/file in production once fixed)
+            return response()->json([
+                'message' => 'Login error: ' . $e->getMessage(),
+                'hint'    => 'Check Render logs for full details.',
             ], 500);
         }
-
-        if (! $token) {
-            return response()->json([
-                'message' => 'Invalid credentials. Please check your email and password.',
-            ], 401);
-        }
-
-        $user = auth('api')->user();
-
-        return response()->json([
-            'token'      => $token,
-            'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl', 1440) * 60,
-            'user'       => [
-                'id'          => $user->id,
-                'username'    => $user->username,
-                'role'        => $user->role,
-                'branch_name' => $user->branch_name,
-                'phone'       => $user->phone,
-            ],
-        ]);
     }
 
     public function me(): JsonResponse
@@ -68,7 +78,7 @@ class AuthController extends Controller
 
     public function logout(): JsonResponse
     {
-        try { auth('api')->logout(); } catch (\Exception $e) {}
+        try { auth('api')->logout(); } catch (\Throwable $e) { /* ignore on logout */ }
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
@@ -77,7 +87,7 @@ class AuthController extends Controller
         try {
             $token = auth('api')->refresh();
             return response()->json(['token' => $token, 'token_type' => 'bearer']);
-        } catch (JWTException $e) {
+        } catch (\Throwable $e) {
             return response()->json(['message' => 'Token refresh failed.'], 401);
         }
     }
@@ -85,8 +95,8 @@ class AuthController extends Controller
     public function updatePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'current_password'              => 'required|string',
-            'new_password'                  => 'required|string|min:6|confirmed',
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:6|confirmed',
         ]);
 
         $user = auth('api')->user();
@@ -111,7 +121,7 @@ class AuthController extends Controller
         $user = User::where('username', $request->username)->first();
 
         if (! $user || ! Hash::check($request->old_password, $user->password)) {
-            return response()->json(['message' => 'Invalid username or password.'], 422);
+            return response()->json(['message' => 'Invalid username or old password.'], 422);
         }
 
         $user->update(['password' => Hash::make($request->new_password)]);

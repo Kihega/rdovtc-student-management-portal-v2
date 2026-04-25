@@ -1,9 +1,3 @@
-# render.yaml — Render IaC config
-# If deploying manually (not via Blueprint), set these env vars in the dashboard:
-#   APP_KEY     → click Generate
-#   JWT_SECRET  → click Generate  ← REQUIRED or login returns 500
-#   DATABASE_URL → link to rdovtc-db connectionString (Internal)
-
 services:
   - type: web
     name: rdovtc-student-management-portal-v2
@@ -17,38 +11,31 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
-        value: false
+        value: true          # Temporarily true — exposes real errors in response JSON
       - key: APP_KEY
         generateValue: true
-
-      # ⚠️ JWT_SECRET must be set manually in Render dashboard if not using Blueprint:
-      # Render → your service → Environment → Add Variable
-      # Key: JWT_SECRET  Value: (click Generate)
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_TTL
         value: "1440"
-
       - key: DATABASE_URL
         fromDatabase:
           name: rdovtc-db
           property: connectionString
-
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_SSLMODE
         value: require
-
       - key: FRONTEND_URL
         value: https://rdovtc-student-management-portal-2.vercel.app
-
       - key: LOG_CHANNEL
         value: stderr
+      - key: LOG_LEVEL
+        value: debug
       - key: CACHE_STORE
         value: file
       - key: SESSION_DRIVER
         value: file
-
       - key: APP_URL
         value: https://rdovtc-student-management-portal-v2.onrender.com
 
